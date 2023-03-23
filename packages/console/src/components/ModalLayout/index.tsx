@@ -1,37 +1,34 @@
-import type { AdminConsoleKey } from '@logto/phrases';
 import classNames from 'classnames';
 import type { ReactNode } from 'react';
 
 import Close from '@/assets/images/close.svg';
 
 import Card from '../Card';
+import type { Props as CardTitleProps } from '../CardTitle';
 import CardTitle from '../CardTitle';
 import IconButton from '../IconButton';
 import * as styles from './index.module.scss';
 
 type Props = {
-  title: AdminConsoleKey;
-  subtitle?: AdminConsoleKey;
   children: ReactNode;
   footer?: ReactNode;
   onClose?: () => void;
   className?: string;
   size?: 'medium' | 'large' | 'xlarge';
-};
+} & Pick<CardTitleProps, 'learnMoreLink' | 'title' | 'subtitle' | 'isWordWrapEnabled'>;
 
-const ModalLayout = ({
-  title,
-  subtitle,
+function ModalLayout({
   children,
   footer,
   onClose,
   className,
   size = 'medium',
-}: Props) => {
+  ...cardTitleProps
+}: Props) {
   return (
     <Card className={classNames(styles.container, styles[size])}>
       <div className={styles.header}>
-        <CardTitle title={title} subtitle={subtitle} />
+        <CardTitle {...cardTitleProps} />
         {onClose && (
           <IconButton
             onClick={() => {
@@ -46,6 +43,6 @@ const ModalLayout = ({
       {footer && <div className={styles.footer}>{footer}</div>}
     </Card>
   );
-};
+}
 
 export default ModalLayout;

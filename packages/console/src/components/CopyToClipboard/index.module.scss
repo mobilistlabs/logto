@@ -4,12 +4,12 @@
   display: inline-block;
   border-radius: 6px;
   color: var(--color-text);
-  font: var(--font-body-medium);
+  font: var(--font-body-2);
   font-family: 'Roboto Mono', monospace;
   cursor: default;
 
   &.contained {
-    padding: _.unit(1) _.unit(1) _.unit(1) _.unit(3);
+    padding: _.unit(1) _.unit(2);
     background: var(--color-layer-2);
   }
 
@@ -31,17 +31,37 @@
       text-overflow: ellipsis;
     }
 
-    .copyIcon {
-      margin-left: _.unit(3);
 
-      svg {
-        width: 16px;
-        height: 16px;
+    .copyToolTipAnchor {
+      margin-left: _.unit(2);
+    }
+  }
+
+  &.default {
+    .row {
+      .copyToolTipAnchor {
+        margin-left: _.unit(3);
       }
     }
   }
-}
 
-.successfulTooltip {
-  background-color: var(--color-success-60);
+  &.small {
+    .row {
+      .copyToolTipAnchor {
+        margin-left: _.unit(1);
+      }
+
+      .iconButton {
+        height: 20px;
+        width: 20px;
+
+        .icon {
+          svg {
+            width: 12px;
+            height: 12px;
+          }
+        }
+      }
+    }
+  }
 }

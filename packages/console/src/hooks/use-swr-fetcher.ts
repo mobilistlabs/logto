@@ -1,22 +1,22 @@
-import type { RequestErrorBody } from '@logto/schemas';
 import { HTTPError } from 'ky';
+import type { KyInstance } from 'ky/distribution/types/ky';
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { BareFetcher } from 'swr';
 
-import useApi, { RequestError } from './use-api';
+import { RequestError } from './use-api';
 
-type withTotalNumber<T> = Array<Awaited<T> | number>;
+type WithTotalNumber<T> = Array<Awaited<T> | number>;
 
 type useSwrFetcherHook = {
-  <T>(): BareFetcher<T>;
-  <T extends unknown[]>(): BareFetcher<withTotalNumber<T>>;
+  <T>(api: KyInstance): BareFetcher<T>;
+  <T extends unknown[]>(api: KyInstance): BareFetcher<WithTotalNumber<T>>;
 };
 
-const useSwrFetcher: useSwrFetcherHook = <T>() => {
-  const api = useApi({ hideErrorToast: true });
+const useSwrFetcher: useSwrFetcherHook = <T>(api: KyInstance) => {
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
-  const fetcher = useCallback<BareFetcher<T | withTotalNumber<T>>>(
+
+  const fetcher = useCallback<BareFetcher<T | WithTotalNumber<T>>>(
     async (resource, init) => {
       try {
         const response = await api.get(resource, init);
@@ -40,8 +40,9 @@ const useSwrFetcher: useSwrFetcherHook = <T>() => {
       } catch (error: unknown) {
         if (error instanceof HTTPError) {
           const { response } = error;
-          const metadata = await response.json<RequestErrorBody>();
-          throw new RequestError(response.status, metadata);
+          // See https://stackoverflow.com/questions/53511974/javascript-fetch-failed-to-execute-json-on-response-body-stream-is-locked
+          // for why `.clone()` is needed
+          throw new RequestError(response.status, await response.clone().json());
         }
         throw error;
       }

@@ -8,7 +8,7 @@ on:
   pull_request:
 
 concurrency:
-  group: main-${{ github.head_ref || github.run_id }}
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
@@ -25,9 +25,7 @@ jobs:
         run: pnpm ci:build
 
   main-lint:
-    # avoid out of memory issue since macOS has bigger memory
-    # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v3
@@ -47,20 +45,14 @@ jobs:
   main-test:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node_version: [16, 18]
-
     steps:
       - uses: actions/checkout@v3
 
       - name: Setup Node and pnpm
         uses: silverhand-io/actions-node-pnpm-run-steps@v2
-        with:
-          node-version: ${{ matrix.node_version }}
 
-      - name: Prepack
-        run: pnpm prepack
+      - name: Build for test
+        run: pnpm -r build:test
 
       - name: Test
         run: pnpm ci:test
@@ -89,6 +81,106 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Build
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           context: .
+          build-args: | # Test cloud build
+            additional_connector_args=--cloud
+
+      - name: Build cloud
+        uses: docker/build-push-action@v4
+        with:
+          file: Dockerfile.cloud
+          context: .
+  
+  main-alteration:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ** Checkout fresh and alteration ref **
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          path: ./fresh
+
+      # Fetch the current version by finding the latest tag starts with "v", e.g. "v1.0.0-beta.19"
+      - id: version
+        working-directory: ./fresh
+        run: echo "current=$(git describe --match "@logto/schemas@*" --abbrev=0)" >> $GITHUB_OUTPUT
+
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ steps.version.outputs.current }}
+          path: ./alteration
+      # ** End **
+
+      - name: Copy lockfile # Make setup workflow happy
+        run: cp ./fresh/pnpm-lock.yaml ./
+
+      - name: Setup Node and pnpm
+        uses: silverhand-io/actions-node-pnpm-run-steps@v2
+        with:
+          run-install: false
+
+      # ** Prepack packages **
+      - name: Prepack fresh
+        working-directory: ./fresh
+        run: pnpm i && pnpm prepack
+
+      - name: Prepack alteration
+        working-directory: ./alteration
+        run: pnpm i && pnpm prepack
+      # ** End **
+
+      - name: Setup Postgres
+        uses: ikalnytskyi/action-setup-postgres@v4
+
+      # ** Setup up-to-date databases and compare (test `up`) **
+      - name: Setup fresh database
+        working-directory: ./fresh
+        run: pnpm cli db seed
+        env:
+          DB_URL: postgres://postgres:postgres@localhost:5432/fresh
+
+      - name: Setup alteration database
+        working-directory: ./alteration
+        run: |
+          cd packages/cli
+          pnpm start db seed
+        env:
+          DB_URL: postgres://postgres:postgres@localhost:5432/alteration
+
+      - name: Run alteration scripts
+        working-directory: ./fresh
+        run: pnpm cli db alt deploy next
+        env:
+          DB_URL: postgres://postgres:postgres@localhost:5432/alteration
+
+      - name: Compare databases
+        working-directory: ./fresh
+        run: node .scripts/compare-database.js fresh alteration
+      # ** End **
+
+      # ** Setup old databases and compare (test `down`) **
+      - name: Setup old database
+        working-directory: ./alteration
+        run: |
+          cd packages/cli
+          pnpm start db seed
+        env:
+          DB_URL: postgres://postgres:postgres@localhost:5432/old
+
+      - name: Revert fresh database to old
+        working-directory: ./fresh
+        run: pnpm cli db alt r v$(echo ${{ steps.version.outputs.current }} | cut -d@ -f3)
+        env:
+          DB_URL: postgres://postgres:postgres@localhost:5432/fresh
+
+      - name: Compare manifests
+        working-directory: ./fresh
+        run: node .scripts/compare-database.js fresh old
+      # ** End **
+
+      - name: Check alteration databases
+        working-directory: ./fresh
+        run: node .scripts/check-alterations-sequence.js

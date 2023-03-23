@@ -1,11 +1,15 @@
 @use '@/scss/underscore' as _;
 
 .title {
-  font: var(--font-title-small);
+  font: var(--font-title-3);
 }
 
 .list {
   padding-left: _.unit(6);
+
+  li {
+    word-break: break-word;
+  }
 }
 
 .red {

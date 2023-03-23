@@ -1,62 +1,68 @@
 import { emailRegEx, passwordRegEx, phoneRegEx, usernameRegEx } from '@logto/core-kit';
 import { arbitraryObjectGuard, userInfoSelectFields } from '@logto/schemas';
-import { has } from '@silverhand/essentials';
-import pick from 'lodash.pick';
+import { conditional, has, pick, tryThat } from '@silverhand/essentials';
 import { boolean, literal, object, string } from 'zod';
 
-import { isTrue } from '#src/env-set/parameters.js';
 import RequestError from '#src/errors/RequestError/index.js';
-import { encryptUserPassword, generateUserId, insertUser } from '#src/lib/user.js';
+import { encryptUserPassword } from '#src/libraries/user.js';
 import koaGuard from '#src/middleware/koa-guard.js';
 import koaPagination from '#src/middleware/koa-pagination.js';
-import { revokeInstanceByUserId } from '#src/queries/oidc-model-instance.js';
-import { findRolesByRoleNames } from '#src/queries/roles.js';
-import {
-  deleteUserById,
-  deleteUserIdentity,
-  findUsers,
-  countUsers,
-  findUserById,
-  hasUser,
-  updateUserById,
-  hasUserWithEmail,
-} from '#src/queries/user.js';
 import assertThat from '#src/utils/assert-that.js';
+import { parseSearchParamsForSearch } from '#src/utils/search.js';
 
-import { checkSignUpIdentifierCollision } from './session/utils.js';
-import type { AuthedRouter } from './types.js';
+import type { AuthedRouter, RouterInitArgs } from './types.js';
 
-export default function adminUserRoutes<T extends AuthedRouter>(router: T) {
-  router.get(
-    '/users',
-    koaPagination(),
-    koaGuard({
-      query: object({
-        search: string().optional(),
-        // Use `.transform()` once the type issue fixed
-        hideAdminUser: string().optional(),
-        isCaseSensitive: string().optional(),
-      }),
-    }),
-    async (ctx, next) => {
-      const { limit, offset } = ctx.pagination;
-      const {
-        query: { search, hideAdminUser: _hideAdminUser, isCaseSensitive: _isCaseSensitive },
-      } = ctx.guard;
+export default function adminUserRoutes<T extends AuthedRouter>(
+  ...[router, { queries, libraries }]: RouterInitArgs<T>
+) {
+  const {
+    oidcModelInstances: { revokeInstanceByUserId },
+    users: {
+      deleteUserById,
+      deleteUserIdentity,
+      findUsers,
+      countUsers,
+      findUserById,
+      hasUser,
+      updateUserById,
+      hasUserWithEmail,
+      hasUserWithPhone,
+    },
+    usersRoles: { findUsersRolesByRoleId },
+  } = queries;
+  const {
+    users: { checkIdentifierCollision, generateUserId, insertUser, findUsersByRoleName },
+  } = libraries;
 
-      const hideAdminUser = isTrue(_hideAdminUser);
-      const isCaseSensitive = isTrue(_isCaseSensitive);
-      const [{ count }, users] = await Promise.all([
-        countUsers(search, hideAdminUser, isCaseSensitive),
-        findUsers(limit, offset, search, hideAdminUser, isCaseSensitive),
-      ]);
+  router.get('/users', koaPagination(), async (ctx, next) => {
+    const { limit, offset } = ctx.pagination;
+    const { searchParams } = ctx.request.URL;
 
-      ctx.pagination.totalCount = count;
-      ctx.body = users.map((user) => pick(user, ...userInfoSelectFields));
+    return tryThat(
+      async () => {
+        const search = parseSearchParamsForSearch(searchParams);
+        const excludeRoleId = searchParams.get('excludeRoleId');
+        const excludeUsersRoles = excludeRoleId ? await findUsersRolesByRoleId(excludeRoleId) : [];
+        const excludeUserIds = excludeUsersRoles.map(({ userId }) => userId);
 
-      return next();
-    }
-  );
+        const [{ count }, users] = await Promise.all([
+          countUsers(search, excludeUserIds),
+          findUsers(limit, offset, search, excludeUserIds),
+        ]);
+
+        ctx.pagination.totalCount = count;
+        ctx.body = users.map((user) => pick(user, ...userInfoSelectFields));
+
+        return next();
+      },
+      (error) => {
+        if (error instanceof TypeError) {
+          throw new RequestError({ code: 'request.invalid_input', details: error.message }, error);
+        }
+        throw error;
+      }
+    );
+  });
 
   router.get(
     '/users/:userId',
@@ -123,42 +129,48 @@ export default function adminUserRoutes<T extends AuthedRouter>(router: T) {
     '/users',
     koaGuard({
       body: object({
-        primaryEmail: string().regex(emailRegEx).optional(),
-        username: string().regex(usernameRegEx).optional(),
+        primaryPhone: string().regex(phoneRegEx),
+        primaryEmail: string().regex(emailRegEx),
+        username: string().regex(usernameRegEx),
         password: string().regex(passwordRegEx),
-        name: string().optional(),
-      }),
+        name: string(),
+      }).partial(),
     }),
     async (ctx, next) => {
-      const { primaryEmail, username, password, name } = ctx.guard.body;
+      const { primaryEmail, primaryPhone, username, password, name } = ctx.guard.body;
 
       assertThat(
         !username || !(await hasUser(username)),
         new RequestError({
-          code: 'user.username_exists_register',
+          code: 'user.username_already_in_use',
           status: 422,
         })
       );
       assertThat(
         !primaryEmail || !(await hasUserWithEmail(primaryEmail)),
         new RequestError({
-          code: 'user.email_exists_register',
+          code: 'user.email_already_in_use',
           status: 422,
         })
+      );
+      assertThat(
+        !primaryPhone || !(await hasUserWithPhone(primaryPhone)),
+        new RequestError({ code: 'user.phone_already_in_use' })
       );
 
       const id = await generateUserId();
 
-      const { passwordEncrypted, passwordEncryptionMethod } = await encryptUserPassword(password);
-
-      const user = await insertUser({
-        id,
-        primaryEmail,
-        username,
-        passwordEncrypted,
-        passwordEncryptionMethod,
-        name,
-      });
+      const user = await insertUser(
+        {
+          id,
+          primaryEmail,
+          primaryPhone,
+          username,
+          name,
+          ...conditional(password && (await encryptUserPassword(password))),
+        },
+        []
+      );
 
       ctx.body = pick(user, ...userInfoSelectFields);
 
@@ -171,14 +183,13 @@ export default function adminUserRoutes<T extends AuthedRouter>(router: T) {
     koaGuard({
       params: object({ userId: string() }),
       body: object({
-        username: string().regex(usernameRegEx).or(literal('')).nullable().optional(),
-        primaryEmail: string().regex(emailRegEx).or(literal('')).nullable().optional(),
-        primaryPhone: string().regex(phoneRegEx).or(literal('')).nullable().optional(),
-        name: string().or(literal('')).nullable().optional(),
-        avatar: string().url().or(literal('')).nullable().optional(),
-        customData: arbitraryObjectGuard.optional(),
-        roleNames: string().array().optional(),
-      }),
+        username: string().regex(usernameRegEx).or(literal('')).nullable(),
+        primaryEmail: string().regex(emailRegEx).or(literal('')).nullable(),
+        primaryPhone: string().regex(phoneRegEx).or(literal('')).nullable(),
+        name: string().or(literal('')).nullable(),
+        avatar: string().url().or(literal('')).nullable(),
+        customData: arbitraryObjectGuard,
+      }).partial(),
     }),
     async (ctx, next) => {
       const {
@@ -187,30 +198,10 @@ export default function adminUserRoutes<T extends AuthedRouter>(router: T) {
       } = ctx.guard;
 
       await findUserById(userId);
-      await checkSignUpIdentifierCollision(body, userId);
+      await checkIdentifierCollision(body, userId);
 
-      // Temp solution to validate the existence of input roleNames
-      if (body.roleNames?.length) {
-        const { roleNames } = body;
-        const roles = await findRolesByRoleNames(roleNames);
-
-        if (roles.length !== roleNames.length) {
-          const resourcesNotFound = roleNames.filter(
-            (roleName) => !roles.some(({ name }) => roleName === name)
-          );
-          throw new RequestError({
-            status: 400,
-            code: 'user.invalid_role_names',
-            data: {
-              roleNames: resourcesNotFound.join(','),
-            },
-          });
-        }
-      }
-
-      const user = await updateUserById(userId, body, 'replace');
-
-      ctx.body = pick(user, ...userInfoSelectFields);
+      const updatedUser = await updateUserById(userId, body, 'replace');
+      ctx.body = pick(updatedUser, ...userInfoSelectFields);
 
       return next();
     }
@@ -285,8 +276,6 @@ export default function adminUserRoutes<T extends AuthedRouter>(router: T) {
         throw new RequestError('user.cannot_delete_self');
       }
 
-      await findUserById(userId);
-
       await deleteUserById(userId);
 
       ctx.status = 204;
@@ -306,7 +295,7 @@ export default function adminUserRoutes<T extends AuthedRouter>(router: T) {
       const { identities } = await findUserById(userId);
 
       if (!has(identities, target)) {
-        throw new RequestError({ code: 'user.identity_not_exists', status: 404 });
+        throw new RequestError({ code: 'user.identity_not_exist', status: 404 });
       }
 
       const updatedUser = await deleteUserIdentity(userId, target);

@@ -2,8 +2,7 @@ import chalk from 'chalk';
 import type { CommandModule } from 'yargs';
 
 import { getDatabaseUrlFromConfig } from '../../database.js';
-import { log } from '../../utilities.js';
-import { addOfficialConnectors } from '../connector/utils.js';
+import { log } from '../../utils.js';
 import {
   validateNodeVersion,
   inquireInstancePath,
@@ -13,18 +12,17 @@ import {
   createEnv,
   logFinale,
   decompress,
-  inquireOfficialConnectors,
   isUrl,
 } from './utils.js';
 
 export type InstallArgs = {
   path?: string;
   skipSeed: boolean;
-  officialConnectors?: boolean;
+  cloud: boolean;
   downloadUrl?: string;
 };
 
-const installLogto = async ({ path, skipSeed, officialConnectors, downloadUrl }: InstallArgs) => {
+const installLogto = async ({ path, skipSeed, downloadUrl, cloud }: InstallArgs) => {
   validateNodeVersion();
 
   // Get instance path
@@ -46,21 +44,11 @@ const installLogto = async ({ path, skipSeed, officialConnectors, downloadUrl }:
       )} command to seed database when ready.\n`
     );
   } else {
-    await seedDatabase(instancePath);
+    await seedDatabase(instancePath, cloud);
   }
 
   // Save to dot env
   await createEnv(instancePath, await getDatabaseUrlFromConfig());
-
-  // Add official connectors
-  if (await inquireOfficialConnectors(officialConnectors)) {
-    await addOfficialConnectors(instancePath);
-  } else {
-    log.info(
-      'Skipped adding official connectors.\n\n' +
-        `  You can use the ${chalk.green('connector add')} command to add connectors at any time.\n`
-    );
-  }
 
   // Finale
   logFinale(instancePath);
@@ -71,7 +59,7 @@ const install: CommandModule<
   {
     p?: string;
     ss: boolean;
-    oc?: boolean;
+    cloud: boolean;
     du?: string;
   }
 > = {
@@ -90,10 +78,11 @@ const install: CommandModule<
         type: 'boolean',
         default: false,
       },
-      oc: {
-        alias: 'official-connectors',
-        describe: 'Add official connectors after downloading Logto',
+      cloud: {
+        describe: 'Init Logto for cloud',
         type: 'boolean',
+        hidden: true,
+        default: false,
       },
       du: {
         alias: 'download-url',
@@ -102,8 +91,8 @@ const install: CommandModule<
         hidden: true,
       },
     }),
-  handler: async ({ p, ss, oc, du }) => {
-    await installLogto({ path: p, skipSeed: ss, officialConnectors: oc, downloadUrl: du });
+  handler: async ({ p, ss, cloud, du }) => {
+    await installLogto({ path: p, skipSeed: ss, cloud, downloadUrl: du });
   },
 };
 

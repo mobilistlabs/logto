@@ -1,13 +1,12 @@
 import type { User } from '@logto/schemas';
 import classNames from 'classnames';
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import ReactModal from 'react-modal';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 
-import Back from '@/assets/images/back.svg';
 import Delete from '@/assets/images/delete.svg';
 import More from '@/assets/images/more.svg';
 import Reset from '@/assets/images/reset.svg';
@@ -15,47 +14,40 @@ import ActionMenu, { ActionMenuItem } from '@/components/ActionMenu';
 import Card from '@/components/Card';
 import CopyToClipboard from '@/components/CopyToClipboard';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
-import DetailsSkeleton from '@/components/DetailsSkeleton';
-import LinkButton from '@/components/LinkButton';
+import DetailsPage from '@/components/DetailsPage';
 import TabNav, { TabNavItem } from '@/components/TabNav';
-import { generatedPasswordStorageKey } from '@/consts';
-import { generateAvatarPlaceHolderById } from '@/consts/avatars';
+import UserAvatar from '@/components/UserAvatar';
+import { UserDetailsTabs } from '@/consts/page-tabs';
 import type { RequestError } from '@/hooks/use-api';
 import useApi from '@/hooks/use-api';
-import * as detailsStyles from '@/scss/details.module.scss';
 import * as modalStyles from '@/scss/modal.module.scss';
+import { withAppInsights } from '@/utils/app-insights';
 
-import CreateSuccess from './components/CreateSuccess';
+import UserAccountInformation from '../../components/UserAccountInformation';
 import ResetPasswordForm from './components/ResetPasswordForm';
-import UserLogs from './components/UserLogs';
-import UserSettings from './components/UserSettings';
 import * as styles from './index.module.scss';
-import { userDetailsParser } from './utils';
+import { UserDetailsOutletContext } from './types';
 
-const UserDetails = () => {
-  const location = useLocation();
-  const isLogs = location.pathname.endsWith('/logs');
-  const { userId } = useParams();
+function UserDetails() {
+  const { pathname } = useLocation();
+  const isPageHasTable =
+    pathname.endsWith(UserDetailsTabs.Roles) || pathname.endsWith(UserDetailsTabs.Logs);
+  const { id } = useParams();
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
   const [isDeleteFormOpen, setIsDeleteFormOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isDeleted, setIsDeleted] = useState(false);
   const [isResetPasswordFormOpen, setIsResetPasswordFormOpen] = useState(false);
   const [resetResult, setResetResult] = useState<string>();
-  const [password, setPassword] = useState(sessionStorage.getItem(generatedPasswordStorageKey));
 
-  const { data, error, mutate } = useSWR<User, RequestError>(userId && `/api/users/${userId}`);
+  const { data, error, mutate } = useSWR<User, RequestError>(id && `api/users/${id}`);
   const isLoading = !data && !error;
   const api = useApi();
   const navigate = useNavigate();
 
-  const userFormData = useMemo(() => {
-    if (!data) {
-      return;
-    }
-
-    return userDetailsParser.toLocalForm(data);
-  }, [data]);
+  useEffect(() => {
+    setIsDeleteFormOpen(false);
+    setIsResetPasswordFormOpen(false);
+  }, [pathname]);
 
   const onDelete = async () => {
     if (!data || isDeleting) {
@@ -65,41 +57,27 @@ const UserDetails = () => {
     setIsDeleting(true);
 
     try {
-      await api.delete(`/api/users/${data.id}`);
-      setIsDeleted(true);
-      setIsDeleting(false);
-      setIsDeleteFormOpen(false);
+      await api.delete(`api/users/${data.id}`);
       toast.success(t('user_details.deleted', { name: data.name }));
       navigate('/users');
-    } catch {
+    } finally {
       setIsDeleting(false);
     }
   };
 
   return (
-    <div className={classNames(detailsStyles.container, isLogs && styles.resourceLayout)}>
-      <LinkButton
-        to="/users"
-        icon={<Back />}
-        title="user_details.back_to_users"
-        className={styles.backLink}
-      />
-      {isLoading && <DetailsSkeleton />}
-      {!data && error && <div>{`error occurred: ${error.body?.message ?? error.message}`}</div>}
-      {userId && data && (
+    <DetailsPage
+      backLink="/users"
+      backLinkTitle="user_details.back_to_users"
+      isLoading={isLoading}
+      error={error}
+      className={classNames(isPageHasTable && styles.resourceLayout)}
+      onRetry={mutate}
+    >
+      {data && (
         <>
           <Card className={styles.header}>
-            {/**
-             * Some social connectors like Google will block the references to its image resource,
-             * without specifying the referrerPolicy attribute. Reference:
-             * https://stackoverflow.com/questions/40570117/http403-forbidden-error-when-trying-to-load-img-src-with-google-profile-pic
-             */}
-            <img
-              className={styles.avatar}
-              src={data.avatar ?? generateAvatarPlaceHolderById(userId)}
-              referrerPolicy="no-referrer"
-              alt="avatar"
-            />
+            <UserAvatar user={data} size="xlarge" />
             <div className={styles.metadata}>
               <div className={styles.name}>{data.name ?? '-'}</div>
               <div>
@@ -113,7 +91,7 @@ const UserDetails = () => {
                   </>
                 )}
                 <div className={styles.text}>User ID</div>
-                <CopyToClipboard value={data.id} />
+                <CopyToClipboard size="small" value={data.id} />
               </div>
             </div>
             <div>
@@ -141,9 +119,13 @@ const UserDetails = () => {
                 </ActionMenuItem>
               </ActionMenu>
               <ReactModal
+                shouldCloseOnEsc
                 isOpen={isResetPasswordFormOpen}
                 className={modalStyles.content}
                 overlayClassName={modalStyles.overlay}
+                onRequestClose={() => {
+                  setIsResetPasswordFormOpen(false);
+                }}
               >
                 <ResetPasswordForm
                   userId={data.id}
@@ -169,46 +151,42 @@ const UserDetails = () => {
             </div>
           </Card>
           <TabNav>
-            <TabNavItem href={`/users/${userId}`}>{t('general.settings_nav')}</TabNavItem>
-            <TabNavItem href={`/users/${userId}/logs`}>{t('user_details.tab_logs')}</TabNavItem>
+            <TabNavItem href={`/users/${data.id}/${UserDetailsTabs.Settings}`}>
+              {t('user_details.tab_settings')}
+            </TabNavItem>
+            <TabNavItem href={`/users/${data.id}/${UserDetailsTabs.Roles}`}>
+              {t('user_details.tab_roles')}
+            </TabNavItem>
+            <TabNavItem href={`/users/${data.id}/${UserDetailsTabs.Logs}`}>
+              {t('user_details.tab_logs')}
+            </TabNavItem>
           </TabNav>
-          {isLogs && <UserLogs userId={data.id} />}
-          {!isLogs && userFormData && (
-            <UserSettings
-              userData={data}
-              userFormData={userFormData}
-              isDeleted={isDeleted}
-              onUserUpdated={(user) => {
-                void mutate(user);
+          <Outlet
+            context={
+              {
+                user: data,
+                isDeleting,
+                onUserUpdated: (user) => {
+                  void mutate(user);
+                },
+              } satisfies UserDetailsOutletContext
+            }
+          />
+          {resetResult && (
+            <UserAccountInformation
+              title="user_details.reset_password.congratulations"
+              username={data.username ?? '-'}
+              password={resetResult}
+              passwordLabel={t('user_details.reset_password.new_password')}
+              onClose={() => {
+                setResetResult(undefined);
               }}
             />
           )}
         </>
       )}
-      {data && password && (
-        <CreateSuccess
-          title="user_details.created_title"
-          username={data.username ?? '-'}
-          password={password}
-          onClose={() => {
-            setPassword(null);
-            sessionStorage.removeItem(generatedPasswordStorageKey);
-          }}
-        />
-      )}
-      {data && resetResult && (
-        <CreateSuccess
-          title="user_details.reset_password.congratulations"
-          username={data.username ?? '-'}
-          password={resetResult}
-          passwordLabel={t('user_details.reset_password.new_password')}
-          onClose={() => {
-            setResetResult(undefined);
-          }}
-        />
-      )}
-    </div>
+    </DetailsPage>
   );
-};
+}
 
-export default UserDetails;
+export default withAppInsights(UserDetails);

@@ -1,22 +1,20 @@
-import type { LogDto, User } from '@logto/schemas';
-import classNames from 'classnames';
+import type { User, Log } from '@logto/schemas';
+import { demoAppApplicationId } from '@logto/schemas';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 
-import Back from '@/assets/images/back.svg';
 import ApplicationName from '@/components/ApplicationName';
 import Card from '@/components/Card';
 import CodeEditor from '@/components/CodeEditor';
 import DangerousRaw from '@/components/DangerousRaw';
-import DetailsSkeleton from '@/components/DetailsSkeleton';
+import DetailsPage from '@/components/DetailsPage';
 import FormField from '@/components/FormField';
-import LinkButton from '@/components/LinkButton';
 import TabNav, { TabNavItem } from '@/components/TabNav';
 import UserName from '@/components/UserName';
 import { logEventTitle } from '@/consts/logs';
 import type { RequestError } from '@/hooks/use-api';
-import * as detailsStyles from '@/scss/details.module.scss';
+import { withAppInsights } from '@/utils/app-insights';
 
 import EventIcon from './components/EventIcon';
 import * as styles from './index.module.scss';
@@ -27,49 +25,51 @@ const getAuditLogDetailsRelatedResourceLink = (pathname: string) =>
 const getDetailsTabNavLink = (logId: string, userId?: string) =>
   userId ? `/users/${userId}/logs/${logId}` : `/audit-logs/${logId}`;
 
-const AuditLogDetails = () => {
-  const { userId, logId } = useParams();
+function AuditLogDetails() {
+  const { id, logId } = useParams();
   const { pathname } = useLocation();
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
-  const { data, error } = useSWR<LogDto, RequestError>(logId && `/api/logs/${logId}`);
-  const { data: userData } = useSWR<User, RequestError>(userId && `/api/users/${userId}`);
+  const { data, error, mutate } = useSWR<Log, RequestError>(logId && `api/logs/${logId}`);
+  const { data: userData } = useSWR<User, RequestError>(id && `api/users/${id}`);
 
   const isLoading = !data && !error;
 
   const backLink = getAuditLogDetailsRelatedResourceLink(pathname);
-  const backLinkTitle = userId ? (
-    <DangerousRaw>
-      {t('log_details.back_to_user', { name: userData?.name ?? t('users.unnamed') })}
-    </DangerousRaw>
-  ) : (
-    'log_details.back_to_logs'
-  );
+  const backLinkTitle = id
+    ? t('log_details.back_to_user', { name: userData?.name ?? t('users.unnamed') })
+    : t('log_details.back_to_logs');
 
   if (!logId) {
     return null;
   }
 
   return (
-    <div className={detailsStyles.container}>
-      <LinkButton to={backLink} icon={<Back />} title={backLinkTitle} className={styles.backLink} />
-      {isLoading && <DetailsSkeleton />}
-      {!data && error && <div>{`error occurred: ${error.body?.message ?? error.message}`}</div>}
+    <DetailsPage
+      backLink={backLink}
+      backLinkTitle={<DangerousRaw>{backLinkTitle}</DangerousRaw>}
+      isLoading={isLoading}
+      error={error}
+      onRetry={mutate}
+    >
       {data && (
         <>
           <Card className={styles.header}>
             <EventIcon isSuccess={data.payload.result === 'Success'} />
             <div className={styles.content}>
-              <div className={styles.eventName}>{logEventTitle[data.type]}</div>
+              <div className={styles.eventName}>{logEventTitle[data.key]}</div>
               <div className={styles.basicInfo}>
                 <div className={styles.infoItem}>
-                  <div className={styles.label}>{t('log_details.event_type')}</div>
-                  <div>{data.type}</div>
+                  <div className={styles.label}>{t('log_details.event_key')}</div>
+                  <div>{data.key}</div>
                 </div>
                 <div className={styles.infoItem}>
                   <div className={styles.label}>{t('log_details.application')}</div>
                   <div>
                     {data.payload.applicationId ? (
-                      <ApplicationName isLink applicationId={data.payload.applicationId} />
+                      <ApplicationName
+                        isLink={data.payload.applicationId !== demoAppApplicationId}
+                        applicationId={data.payload.applicationId}
+                      />
                     ) : (
                       '-'
                     )}
@@ -103,11 +103,11 @@ const AuditLogDetails = () => {
             </div>
           </Card>
           <TabNav>
-            <TabNavItem href={getDetailsTabNavLink(logId, userId)}>
+            <TabNavItem href={getDetailsTabNavLink(logId, id)}>
               {t('log_details.tab_details')}
             </TabNavItem>
           </TabNav>
-          <Card className={classNames(styles.body, detailsStyles.body)}>
+          <Card className={styles.body}>
             <div className={styles.main}>
               <FormField title="log_details.raw_data">
                 <CodeEditor language="json" value={JSON.stringify(data.payload, null, 2)} />
@@ -116,8 +116,8 @@ const AuditLogDetails = () => {
           </Card>
         </>
       )}
-    </div>
+    </DetailsPage>
   );
-};
+}
 
-export default AuditLogDetails;
+export default withAppInsights(AuditLogDetails);

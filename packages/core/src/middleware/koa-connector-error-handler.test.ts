@@ -5,6 +5,8 @@ import { createContextWithRouteParameters } from '#src/utils/test-utils.js';
 
 import koaConnectorErrorHandler from './koa-connector-error-handler.js';
 
+const { jest } = import.meta;
+
 describe('koaConnectorErrorHandler middleware', () => {
   const next = jest.fn();
   const ctx = createContextWithRouteParameters();
@@ -106,7 +108,7 @@ describe('koaConnectorErrorHandler middleware', () => {
       new RequestError(
         {
           code: 'connector.template_not_found',
-          status: 500,
+          status: 400,
         },
         { message }
       )
@@ -196,7 +198,7 @@ describe('koaConnectorErrorHandler middleware', () => {
       new RequestError(
         {
           code: 'connector.general',
-          status: 500,
+          status: 400,
         },
         { message }
       )
@@ -214,7 +216,7 @@ describe('koaConnectorErrorHandler middleware', () => {
       new RequestError(
         {
           code: 'connector.general',
-          status: 500,
+          status: 400,
           errorDescription: '\nMock General connector errors',
         },
         message

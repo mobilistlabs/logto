@@ -1,59 +1,73 @@
-import type { CreateApplication, OidcClientMetadata } from '@logto/schemas';
-import { ApplicationType } from '@logto/schemas';
-import { adminConsoleApplicationId, demoAppApplicationId } from '@logto/schemas/lib/seeds/index.js';
-import { tryThat } from '@logto/shared';
+import type { CreateApplication } from '@logto/schemas';
+import { ApplicationType, adminConsoleApplicationId, demoAppApplicationId } from '@logto/schemas';
+import { appendPath, tryThat } from '@silverhand/essentials';
 import { addSeconds } from 'date-fns';
 import type { AdapterFactory, AllClientMetadata } from 'oidc-provider';
 import { errors } from 'oidc-provider';
 import snakecaseKeys from 'snakecase-keys';
 
-import envSet, { MountedApps } from '#src/env-set/index.js';
-import { findApplicationById } from '#src/queries/application.js';
-import {
-  consumeInstanceById,
-  destroyInstanceById,
-  findPayloadById,
-  findPayloadByPayloadField,
-  revokeInstanceByGrantId,
-  upsertInstance,
-} from '#src/queries/oidc-model-instance.js';
-import { appendPath } from '#src/utils/url.js';
+import { EnvSet } from '#src/env-set/index.js';
+import { getTenantUrls } from '#src/env-set/utils.js';
+import type Queries from '#src/tenants/Queries.js';
 
 import { getConstantClientMetadata } from './utils.js';
 
-const buildAdminConsoleClientMetadata = (): AllClientMetadata => {
-  const { localhostUrl, adminConsoleUrl } = envSet.values;
+/**
+ * Append `redirect_uris` and `post_logout_redirect_uris` for Admin Console
+ * as Admin Console is attached to the admin tenant in OSS and its endpoints are dynamic (from env variable).
+ */
+const transpileMetadata = (clientId: string, data: AllClientMetadata): AllClientMetadata => {
+  if (clientId !== adminConsoleApplicationId) {
+    return data;
+  }
+
+  const { adminUrlSet, cloudUrlSet } = EnvSet.values;
   const urls = [
-    ...new Set([appendPath(localhostUrl, '/console').toString(), adminConsoleUrl.toString()]),
+    ...adminUrlSet.deduplicated().map((url) => appendPath(url, '/console')),
+    ...cloudUrlSet.deduplicated(),
   ];
 
   return {
-    ...getConstantClientMetadata(ApplicationType.SPA),
-    client_id: adminConsoleApplicationId,
-    client_name: 'Admin Console',
-    redirect_uris: urls.map((url) => appendPath(url, '/callback').toString()),
-    post_logout_redirect_uris: urls,
+    ...data,
+    redirect_uris: [
+      ...(data.redirect_uris ?? []),
+      ...urls.map((url) => appendPath(url, '/callback').href),
+    ],
+    post_logout_redirect_uris: [...(data.post_logout_redirect_uris ?? []), ...urls.map(String)],
   };
 };
 
-const buildDemoAppUris = (
-  oidcClientMetadata: OidcClientMetadata
-): Pick<OidcClientMetadata, 'redirectUris' | 'postLogoutRedirectUris'> => {
-  const { localhostUrl, endpoint } = envSet.values;
-  const urls = [
-    appendPath(localhostUrl, MountedApps.DemoApp).toString(),
-    appendPath(endpoint, MountedApps.DemoApp).toString(),
-  ];
+const buildDemoAppClientMetadata = (envSet: EnvSet): AllClientMetadata => {
+  const urlStrings = getTenantUrls(envSet.tenantId, EnvSet.values).map(
+    (url) => appendPath(url, '/demo-app').href
+  );
 
-  const data = {
-    redirectUris: [...new Set([...urls, ...oidcClientMetadata.redirectUris])],
-    postLogoutRedirectUris: [...new Set([...urls, ...oidcClientMetadata.postLogoutRedirectUris])],
+  return {
+    ...getConstantClientMetadata(envSet, ApplicationType.SPA),
+    client_id: demoAppApplicationId,
+    client_name: 'Live Preview',
+    redirect_uris: urlStrings,
+    post_logout_redirect_uris: urlStrings,
   };
-
-  return data;
 };
 
-export default function postgresAdapter(modelName: string): ReturnType<AdapterFactory> {
+export default function postgresAdapter(
+  envSet: EnvSet,
+  queries: Queries,
+  modelName: string
+): ReturnType<AdapterFactory> {
+  const {
+    applications: { findApplicationById },
+    oidcModelInstances: {
+      consumeInstanceById,
+      destroyInstanceById,
+      findPayloadById,
+      findPayloadByPayloadField,
+      revokeInstanceByGrantId,
+      upsertInstance,
+    },
+  } = queries;
+
   if (modelName === 'Client') {
     const reject = async () => {
       throw new Error('Not implemented');
@@ -69,10 +83,8 @@ export default function postgresAdapter(modelName: string): ReturnType<AdapterFa
       client_id,
       client_secret,
       client_name,
-      ...getConstantClientMetadata(type),
-      ...snakecaseKeys(oidcClientMetadata),
-      ...(client_id === demoAppApplicationId &&
-        snakecaseKeys(buildDemoAppUris(oidcClientMetadata))),
+      ...getConstantClientMetadata(envSet, type),
+      ...transpileMetadata(client_id, snakecaseKeys(oidcClientMetadata)),
       // `node-oidc-provider` won't camelCase custom parameter keys, so we need to keep the keys camelCased
       ...customClientMetadata,
     });
@@ -80,9 +92,8 @@ export default function postgresAdapter(modelName: string): ReturnType<AdapterFa
     return {
       upsert: reject,
       find: async (id) => {
-        // Directly return client metadata since Admin Console does not belong to any tenant in the OSS version.
-        if (id === adminConsoleApplicationId) {
-          return buildAdminConsoleClientMetadata();
+        if (id === demoAppApplicationId) {
+          return buildDemoAppClientMetadata(envSet);
         }
 
         return transpileClient(

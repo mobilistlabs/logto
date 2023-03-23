@@ -1,27 +1,29 @@
 import classNames from 'classnames';
-import type { HTMLProps, ReactNode, ForwardedRef } from 'react';
-import { forwardRef } from 'react';
+import type { HTMLProps, ForwardedRef, ReactElement } from 'react';
+import { cloneElement, forwardRef } from 'react';
 
 import * as styles from './index.module.scss';
 
-type Props = HTMLProps<HTMLInputElement> & {
+type Props = Omit<HTMLProps<HTMLInputElement>, 'size'> & {
   hasError?: boolean;
   errorMessage?: string;
-  icon?: ReactNode;
+  icon?: ReactElement;
+  suffix?: ReactElement;
 };
 
-const TextInput = (
+function TextInput(
   {
     errorMessage,
     hasError = Boolean(errorMessage),
     icon,
+    suffix,
     disabled,
     className,
     readOnly,
     ...rest
   }: Props,
   reference: ForwardedRef<HTMLInputElement>
-) => {
+) {
   return (
     <div className={className}>
       <div
@@ -35,10 +37,14 @@ const TextInput = (
       >
         {icon && <span className={styles.icon}>{icon}</span>}
         <input type="text" {...rest} ref={reference} disabled={disabled} readOnly={readOnly} />
+        {suffix &&
+          cloneElement(suffix, {
+            className: classNames([suffix.props.className, styles.suffix]),
+          })}
       </div>
       {hasError && errorMessage && <div className={styles.errorMessage}>{errorMessage}</div>}
     </div>
   );
-};
+}
 
 export default forwardRef(TextInput);

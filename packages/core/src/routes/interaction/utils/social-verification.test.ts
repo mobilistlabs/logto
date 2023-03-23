@@ -1,18 +1,22 @@
 import { ConnectorType } from '@logto/connector-kit';
+import { createMockUtils } from '@logto/shared/esm';
 
-import { getUserInfoByAuthCode } from '#src/lib/social.js';
+import type { WithLogContext } from '#src/middleware/koa-audit-log.js';
+import createMockContext from '#src/test-utils/jest-koa-mocks/create-mock-context.js';
+import { createMockLogContext } from '#src/test-utils/koa-audit-log.js';
+import { MockTenant } from '#src/test-utils/tenant.js';
 
-import { verifySocialIdentity } from './social-verification.js';
+const { jest } = import.meta;
+const { mockEsm } = createMockUtils(jest);
 
-jest.mock('#src/lib/social.js', () => ({
-  getUserInfoByAuthCode: jest.fn().mockResolvedValue({ id: 'foo' }),
-}));
+const getUserInfoByAuthCode = jest.fn().mockResolvedValue({ id: 'foo' });
 
-jest.mock('#src/connectors.js', () => ({
+const tenant = new MockTenant(undefined, undefined, undefined, {
+  socials: { getUserInfoByAuthCode },
+});
+
+mockEsm('#src/libraries/connector.js', () => ({
   getLogtoConnectorById: jest.fn().mockResolvedValue({
-    dbEntry: {
-      enabled: true,
-    },
     metadata: {
       id: 'social',
     },
@@ -21,15 +25,20 @@ jest.mock('#src/connectors.js', () => ({
   }),
 }));
 
-const log = jest.fn();
+const { verifySocialIdentity } = await import('./social-verification.js');
 
 describe('social-verification', () => {
   it('verifySocialIdentity', async () => {
+    // @ts-expect-error test mock context
+    const ctx: WithLogContext = {
+      ...createMockContext(),
+      ...createMockLogContext(),
+    };
     const connectorId = 'connector';
     const connectorData = { authCode: 'code' };
-    const userInfo = await verifySocialIdentity({ connectorId, connectorData }, log);
+    const userInfo = await verifySocialIdentity({ connectorId, connectorData }, ctx, tenant);
 
-    expect(getUserInfoByAuthCode).toBeCalledWith(connectorId, connectorData);
+    expect(getUserInfoByAuthCode).toBeCalledWith(connectorId, connectorData, expect.anything());
     expect(userInfo).toEqual({ id: 'foo' });
   });
 });

@@ -12,9 +12,12 @@ const errors = {
   required_field_missing_plural: '至少需要输入一个{{field}}',
   more_details: '查看详情',
   username_pattern_error: '用户名只能包含英文字母、数字或下划线，且不以数字开头。',
-  password_pattern_error: '密码应不少于 6 位',
+  password_pattern_error: '密码至少需要 {{min}} 个字符，且必须包含字母、数字和符号。',
   insecure_contexts: '不支持不安全的上下文（非 HTTPS）。',
   unexpected_error: '发生未知错误',
+  not_found: '404 找不到资源',
+  create_internal_role_violation:
+    '你正在创建一个被 Logto 禁止内部角色。尝试使用不以 "#internal:" 开头的其他名称。',
 };
 
 export default errors;

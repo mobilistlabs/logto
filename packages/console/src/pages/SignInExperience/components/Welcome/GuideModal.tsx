@@ -12,17 +12,16 @@ import CardTitle from '@/components/CardTitle';
 import IconButton from '@/components/IconButton';
 import Spacer from '@/components/Spacer';
 import useApi from '@/hooks/use-api';
-import useSettings from '@/hooks/use-settings';
+import useConfigs from '@/hooks/use-configs';
 import useUserPreferences from '@/hooks/use-user-preferences';
 import * as modalStyles from '@/scss/modal.module.scss';
 
 import usePreviewConfigs from '../../hooks/use-preview-configs';
 import BrandingForm from '../../tabs/Branding/BrandingForm';
-import ColorForm from '../../tabs/Branding/ColorForm';
 import LanguagesForm from '../../tabs/Others/LanguagesForm';
 import TermsForm from '../../tabs/Others/TermsForm';
 import type { SignInExperienceForm } from '../../types';
-import { signInExperienceParser } from '../../utilities';
+import { signInExperienceParser } from '../../utils/form';
 import Preview from '../Preview';
 import * as styles from './GuideModal.module.scss';
 
@@ -31,10 +30,10 @@ type Props = {
   onClose: () => void;
 };
 
-const GuideModal = ({ isOpen, onClose }: Props) => {
-  const { data } = useSWR<SignInExperience>('/api/sign-in-exp');
+function GuideModal({ isOpen, onClose }: Props) {
+  const { data } = useSWR<SignInExperience>('api/sign-in-exp');
   const { data: preferences, update: updatePreferences } = useUserPreferences();
-  const { updateSettings } = useSettings();
+  const { updateConfigs } = useConfigs();
   const methods = useForm<SignInExperienceForm>();
   const {
     reset,
@@ -65,10 +64,10 @@ const GuideModal = ({ isOpen, onClose }: Props) => {
     }
 
     await Promise.all([
-      api.patch('/api/sign-in-exp', {
+      api.patch('api/sign-in-exp', {
         json: signInExperienceParser.toRemoteModel(formData),
       }),
-      updateSettings({ signInExperienceCustomized: true }),
+      updateConfigs({ signInExperienceCustomized: true }),
     ]);
 
     onClose();
@@ -76,13 +75,18 @@ const GuideModal = ({ isOpen, onClose }: Props) => {
 
   const onSkip = async () => {
     setIsLoading(true);
-    await updateSettings({ signInExperienceCustomized: true });
+    await updateConfigs({ signInExperienceCustomized: true });
     setIsLoading(false);
     onClose();
   };
 
   return (
-    <Modal isOpen={isOpen} className={modalStyles.fullScreen}>
+    <Modal
+      shouldCloseOnEsc
+      isOpen={isOpen}
+      className={modalStyles.fullScreen}
+      onRequestClose={onSkip}
+    >
       <div className={styles.container}>
         <div className={styles.header}>
           <IconButton size="large" disabled={isLoading} onClick={onSkip}>
@@ -104,20 +108,23 @@ const GuideModal = ({ isOpen, onClose }: Props) => {
             <form className={styles.form} onSubmit={onSubmit}>
               {!preferences.experienceNoticeConfirmed && (
                 <div className={styles.reminder}>
-                  <Alert action="sign_in_exp.welcome.got_it" variant="shadow" onClick={onGotIt}>
+                  <Alert action="general.got_it" variant="shadow" onClick={onGotIt}>
                     {t('sign_in_exp.welcome.apply_remind')}
                   </Alert>
                 </div>
               )}
               <div className={styles.main}>
                 <div className={styles.form}>
-                  <ColorForm />
                   <BrandingForm />
                   <TermsForm />
                   <LanguagesForm />
                 </div>
                 {formData.id && (
-                  <Preview signInExperience={previewConfigs} className={styles.preview} />
+                  <Preview
+                    isLivePreviewEntryInvisible
+                    signInExperience={previewConfigs}
+                    className={styles.preview}
+                  />
                 )}
               </div>
               <div className={styles.footer}>
@@ -136,6 +143,6 @@ const GuideModal = ({ isOpen, onClose }: Props) => {
       </div>
     </Modal>
   );
-};
+}
 
 export default GuideModal;

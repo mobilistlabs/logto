@@ -7,7 +7,6 @@ export const userInfoSelectFields = Object.freeze([
   'primaryPhone',
   'name',
   'avatar',
-  'roleNames',
   'customData',
   'identities',
   'lastSignInAt',
@@ -16,11 +15,31 @@ export const userInfoSelectFields = Object.freeze([
   'isSuspended',
 ] as const);
 
-export type UserInfo<Keys extends keyof CreateUser = typeof userInfoSelectFields[number]> = Pick<
+export type UserInfo<Keys extends keyof CreateUser = (typeof userInfoSelectFields)[number]> = Pick<
   CreateUser,
   Keys
 >;
 
-export enum UserRole {
+export type UserProfileResponse = UserInfo & { hasPassword?: boolean };
+
+/** Internal read-only roles for user tenants. */
+export enum InternalRole {
+  /**
+   * Internal admin role for Machine-to-Machine apps in Logto user tenants.
+   *
+   * It should NOT be assigned to any user.
+   */
+  Admin = '#internal:admin',
+}
+
+export enum AdminTenantRole {
   Admin = 'admin',
+  /** Common user role in admin tenant. */
+  User = 'user',
+  /** The role for machine to machine applications that represent a user tenant and send requests to Logto Cloud. */
+  TenantApplication = 'tenantApplication',
+}
+
+export enum PredefinedScope {
+  All = 'all',
 }

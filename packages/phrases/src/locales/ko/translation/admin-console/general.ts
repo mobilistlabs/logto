@@ -2,6 +2,7 @@ const general = {
   placeholder: '플레이스홀더',
   skip: '건너뛰기',
   next: '다음',
+  back: 'Back', // UNTRANSLATED
   retry: '재시도',
   done: '완료',
   search: '검색',
@@ -10,7 +11,7 @@ const general = {
   save: '저장',
   save_changes: '변경 내용 저장',
   saved: '저장됨!',
-  discard: 'Discard', // UNTRANSLATED
+  discard: '취소',
   loading: '로딩 중...',
   redirecting: '리다이렉팅 중...',
   add: '추가',
@@ -30,17 +31,25 @@ const general = {
   copying: '복사 중',
   copied: '복사됨',
   required: '필수',
-  add_another: '+ 새로 추가',
+  add_another: '새로 추가',
   deletion_confirmation: '정말로 {{title}}을/를 삭제할까요?',
   settings_nav: '설정',
   unsaved_changes_warning: '수정된 내용이 있어요. 정말로 현재 페이지를 벗어날까요?',
   leave_page: '페이지 나가기',
   stay_on_page: '페이지 유지하기',
-  type_to_search: 'Type to search', // UNTRANSLATED
-  got_it: 'Got it', // UNTRANSLATED
-  page_info: '{{min, number}}-{{max, number}} of {{total, number}}', // UNTRANSLATED
-  learn_more: 'Learn more', // UNTRANSLATED
-  tab_errors: '{{count, number}} errors', // UNTRANSLATED
+  type_to_search: '검색어 입력',
+  got_it: '알겠어요',
+  continue: 'Continue', // UNTRANSLATED
+  page_info: '{{min, number}}-{{max, number}} / {{total, number}}',
+  learn_more: '더 알아보기',
+  tab_errors: '{{count, number}} 오류',
+  skip_for_now: '지금은 건너뛰기',
+  remove: '삭제',
+  visit: 'Visit', // UNTRANSLATED
+  join: 'Join', // UNTRANSLATED
+  try_now: 'Try Now', // UNTRANSLATED
+  multiple_form_field: '(Multiple)', // UNTRANSLATED
+  demo: 'Demo', // UNTRANSLATED
 };
 
 export default general;

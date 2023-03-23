@@ -16,6 +16,8 @@ const user_details = {
     congratulations: 'Der Benutzer wurde erfolgreich zurückgesetzt',
     new_password: 'Neues Passwort:',
   },
+  tab_settings: 'Settings', // UNTRANSLATED
+  tab_roles: 'Roles', // UNTRANSLATED
   tab_logs: 'Benutzer-Logs',
   settings: 'Settings', // UNTRANSLATED
   settings_description:
@@ -40,6 +42,24 @@ const user_details = {
       'Du entfernst die bestehende <name/> Identität. Bist du sicher, dass du das tun willst?',
   },
   suspended: 'Suspended', // UNTRANSLATED
+  roles: {
+    name_column: 'Role', // UNTRANSLATED
+    description_column: 'Description', // UNTRANSLATED
+    assign_button: 'Assign Roles', // UNTRANSLATED
+    delete_description:
+      'This action will remove this role from this user. The role itself will still exist, but it will no longer be associated with this user.', // UNTRANSLATED
+    deleted: '{{name}} was successfully removed from this user.', // UNTRANSLATED
+    assign_title: 'Assign roles to {{name}}', // UNTRANSLATED
+    assign_subtitle: 'Authorize {{name}} one or more roles', // UNTRANSLATED
+    assign_role_field: 'Assign roles', // UNTRANSLATED
+    role_search_placeholder: 'Search by role name', // UNTRANSLATED
+    added_text: '{{value, number}} added', // UNTRANSLATED
+    assigned_user_count: '{{value, number}} users', // UNTRANSLATED
+    confirm_assign: 'Assign roles', // UNTRANSLATED
+    role_assigned: 'Successfully assigned role(s)', // UNTRANSLATED
+    search: 'Search by role name, description or ID', // UNTRANSLATED
+    empty: 'No role available', // UNTRANSLATED
+  },
 };
 
 export default user_details;

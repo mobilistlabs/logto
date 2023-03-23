@@ -9,7 +9,14 @@ import { Ring as Spinner } from '@/components/Spinner';
 import type DangerousRaw from '../DangerousRaw';
 import * as styles from './index.module.scss';
 
-export type ButtonType = 'primary' | 'danger' | 'outline' | 'text' | 'default' | 'branding';
+export type ButtonType =
+  | 'primary'
+  | 'danger'
+  | 'outline'
+  | 'text'
+  | 'default'
+  | 'branding'
+  | 'violet';
 
 type BaseProps = Omit<HTMLProps<HTMLButtonElement>, 'type' | 'size' | 'title'> & {
   htmlType?: 'button' | 'submit' | 'reset';
@@ -17,6 +24,7 @@ type BaseProps = Omit<HTMLProps<HTMLButtonElement>, 'type' | 'size' | 'title'> &
   size?: 'small' | 'medium' | 'large';
   isLoading?: boolean;
   loadingDelay?: number;
+  trailingIcon?: ReactNode;
 };
 
 type TitleButtonProps = BaseProps & {
@@ -31,7 +39,7 @@ type IconButtonProps = BaseProps & {
 
 export type Props = TitleButtonProps | IconButtonProps;
 
-const Button = ({
+function Button({
   htmlType = 'button',
   type = 'default',
   size = 'medium',
@@ -41,8 +49,9 @@ const Button = ({
   isLoading = false,
   loadingDelay = 500,
   onClick,
+  trailingIcon,
   ...rest
-}: Props) => {
+}: Props) {
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
   const [showSpinner, setShowSpinner] = useState(false);
   const timerRef = useRef<number>();
@@ -51,7 +60,7 @@ const Button = ({
     // Delay showing the spinner after 'loadingDelay' milliseconds
     if (isLoading) {
       // eslint-disable-next-line @silverhand/fp/no-mutation
-      timerRef.current = setTimeout(() => {
+      timerRef.current = window.setTimeout(() => {
         setShowSpinner(true);
       }, loadingDelay);
     }
@@ -84,8 +93,9 @@ const Button = ({
       {showSpinner && <Spinner className={styles.spinner} />}
       {icon && <span className={styles.icon}>{icon}</span>}
       {title && (typeof title === 'string' ? <span>{t(title)}</span> : title)}
+      {trailingIcon && <span className={styles.trailingIcon}>{trailingIcon}</span>}
     </button>
   );
-};
+}
 
 export default Button;

@@ -1,22 +1,19 @@
 import { builtInLanguages as builtInConsoleLanguages } from '@logto/phrases';
-import { useLogto } from '@logto/react';
-import { AppearanceMode } from '@logto/schemas';
-import type { Nullable, Optional } from '@silverhand/essentials';
-import { t } from 'i18next';
-import { useCallback, useEffect, useMemo } from 'react';
-import { toast } from 'react-hot-toast';
-import useSWR from 'swr';
+import type { Theme } from '@logto/schemas';
+import { useContext, useEffect, useMemo } from 'react';
 import { z } from 'zod';
 
-import { themeStorageKey } from '@/consts';
+import { AppThemeContext, buildDefaultAppearanceMode } from '@/contexts/AppThemeProvider';
+import type { DynamicAppearanceMode } from '@/types/appearance-mode';
+import { appearanceModeGuard } from '@/types/appearance-mode';
 
-import type { RequestError } from './use-api';
-import useApi from './use-api';
-import useLogtoUserId from './use-logto-user-id';
+import useMeCustomData from './use-me-custom-data';
+
+const adminConsolePreferencesKey = 'adminConsolePreferences';
 
 const userPreferencesGuard = z.object({
   language: z.enum(builtInConsoleLanguages).optional(),
-  appearanceMode: z.nativeEnum(AppearanceMode),
+  appearanceMode: appearanceModeGuard.optional(),
   experienceNoticeConfirmed: z.boolean().optional(),
   getStartedHidden: z.boolean().optional(),
   connectorSieNoticeConfirmed: z.boolean().optional(),
@@ -24,65 +21,47 @@ const userPreferencesGuard = z.object({
 
 export type UserPreferences = z.infer<typeof userPreferencesGuard>;
 
-const key = 'adminConsolePreferences';
+type DefaultUserPreference = {
+  language: (typeof builtInConsoleLanguages)[number];
+  appearanceMode: Theme | DynamicAppearanceMode.System;
+} & Omit<UserPreferences, 'language' | 'appearanceMode'>;
 
-const getEnumFromArray = <T extends string>(
-  array: T[],
-  value: Nullable<Optional<string>>
-): Optional<T> => array.find((element) => element === value);
+const defaultUserPreferences: DefaultUserPreference = {
+  appearanceMode: buildDefaultAppearanceMode(),
+  language: 'en',
+};
 
 const useUserPreferences = () => {
-  const { isAuthenticated, error: authError } = useLogto();
-  const userId = useLogtoUserId();
-  const shouldFetch = isAuthenticated && !authError && userId;
-  const { data, mutate, error } = useSWR<unknown, RequestError>(
-    shouldFetch && `/api/users/${userId}/custom-data`
-  );
-  const api = useApi();
+  const { data, error, isLoading, isLoaded, update: updateMeCustomData } = useMeCustomData();
+  const { setAppearanceMode } = useContext(AppThemeContext);
 
-  const parseData = useCallback((): UserPreferences => {
-    try {
-      return z.object({ [key]: userPreferencesGuard }).parse(data).adminConsolePreferences;
-    } catch {
-      return {
-        appearanceMode:
-          getEnumFromArray(Object.values(AppearanceMode), localStorage.getItem(themeStorageKey)) ??
-          AppearanceMode.SyncWithSystem,
-      };
-    }
+  const userPreferences = useMemo(() => {
+    const parsed = z.object({ [adminConsolePreferencesKey]: userPreferencesGuard }).safeParse(data);
+
+    return parsed.success
+      ? {
+          ...defaultUserPreferences,
+          ...parsed.data[adminConsolePreferencesKey],
+        }
+      : defaultUserPreferences;
   }, [data]);
 
-  const userPreferences = useMemo(() => parseData(), [parseData]);
-
   const update = async (data: Partial<UserPreferences>) => {
-    if (!userId) {
-      toast.error(t('errors.unexpected_error'));
-
-      return;
-    }
-
-    const updated = await api
-      .patch(`/api/users/${userId}/custom-data`, {
-        json: {
-          customData: {
-            [key]: {
-              ...userPreferences,
-              ...data,
-            },
-          },
-        },
-      })
-      .json();
-    void mutate(updated);
+    await updateMeCustomData({
+      [adminConsolePreferencesKey]: {
+        ...userPreferences,
+        ...data,
+      },
+    });
   };
 
   useEffect(() => {
-    localStorage.setItem(themeStorageKey, userPreferences.appearanceMode);
-  }, [userPreferences.appearanceMode]);
+    setAppearanceMode(userPreferences.appearanceMode);
+  }, [setAppearanceMode, userPreferences.appearanceMode]);
 
   return {
-    isLoading: !data && !error,
-    isLoaded: Boolean(data && !error),
+    isLoading,
+    isLoaded,
     data: userPreferences,
     update,
     error,

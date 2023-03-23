@@ -1,7 +1,7 @@
 @use '@/scss/underscore' as _;
 
-.backLink {
-  margin: _.unit(1) 0 0 _.unit(1);
+.permissionPage {
+  height: 100%;
 }
 
 .deleteConfirm {
@@ -10,7 +10,7 @@
   }
 
   .description {
-    font: var(--font-body-medium);
+    font: var(--font-body-2);
   }
 
   .highlight {
@@ -40,7 +40,7 @@
       justify-content: space-between;
 
       .name {
-        font: var(--font-title-large);
+        font: var(--font-title-1);
         color: var(--color-text);
       }
     }

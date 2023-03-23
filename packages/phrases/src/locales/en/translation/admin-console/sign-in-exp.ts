@@ -7,12 +7,12 @@ const sign_in_exp = {
     others: 'Others',
   },
   welcome: {
-    title:
-      'This is the first time you define sign-in experience. This guide will help you go through all necessary settings and quickly get started.',
+    title: 'Customize sign-in experience',
+    description:
+      'Get started fast with your first sign-in setup. This guide walks you through all the necessary settings.',
     get_started: 'Get Started',
     apply_remind:
       'Please note that sign-in experience will apply to all applications under this account.',
-    got_it: 'Got It',
   },
   color: {
     title: 'COLOR',
@@ -27,21 +27,28 @@ const sign_in_exp = {
   branding: {
     title: 'BRANDING AREA',
     ui_style: 'Style',
-    styles: {
-      logo_slogan: 'App logo with slogan',
-      logo: 'App logo only',
-    },
+    favicon: 'Favicon',
     logo_image_url: 'App logo image URL',
     logo_image_url_placeholder: 'https://your.cdn.domain/logo.png',
     dark_logo_image_url: 'App logo image URL (Dark)',
     dark_logo_image_url_placeholder: 'https://your.cdn.domain/logo-dark.png',
-    slogan: 'Slogan',
-    slogan_placeholder: 'Unleash your creativity',
+    logo_image: 'App logo',
+    dark_logo_image: 'App logo (Dark)',
+    logo_image_error: 'App logo: {{error}}',
+    favicon_error: 'Favicon: {{error}}',
+  },
+  custom_css: {
+    title: 'Custom CSS',
+    css_code_editor_title: 'Personalize your UI with Custom CSS',
+    css_code_editor_description1: 'See the example of Custom CSS.',
+    css_code_editor_description2: '<a>{{link}}</a>',
+    css_code_editor_description_link_content: 'Learn more',
+    css_code_editor_content_placeholder:
+      'Enter your custom CSS to tailor the styles of anything to your exact specifications. Express your creativity and make your UI stand out.',
   },
   sign_up_and_sign_in: {
-    identifiers: 'Sign-up identifiers',
     identifiers_email: 'Email address',
-    identifiers_sms: 'Phone number',
+    identifiers_phone: 'Phone number',
     identifiers_username: 'Username',
     identifiers_email_or_sms: 'Email address or phone number',
     identifiers_none: 'Not applicable',
@@ -75,7 +82,7 @@ const sign_in_exp = {
       social_sign_in: 'Social sign-in',
       description:
         'Depending on the mandatory identifier you set up, your user may be asked to provide an identifier when signing up via social connector.',
-      add_social_connector: 'Link Social Connector',
+      add_social_connector: 'Add Social Connector',
       set_up_hint: {
         not_in_list: 'Not in the list?',
         set_up_more: 'Set up',
@@ -96,12 +103,11 @@ const sign_in_exp = {
   },
   others: {
     terms_of_use: {
-      title: 'TERMS OF USE',
-      enable: 'Enable terms of use',
-      description: 'Add the legal agreements for the use of your product',
-      terms_of_use: 'Terms of use',
+      title: 'TERMS',
+      terms_of_use: 'Terms of use URL',
       terms_of_use_placeholder: 'https://your.terms.of.use/',
-      terms_of_use_tip: 'Terms of use URL',
+      privacy_policy: 'Privacy policy URL',
+      privacy_policy_placeholder: 'https://your.privacy.policy/',
     },
     languages: {
       title: 'LANGUAGES',
@@ -133,7 +139,6 @@ const sign_in_exp = {
       default_language_deletion_title: 'Default language can’t be deleted.',
       default_language_deletion_description:
         '{{language}} is set as your default language and can’t be deleted. ',
-      got_it: 'Got It',
     },
     advanced_options: {
       title: 'ADVANCED OPTIONS',
@@ -143,15 +148,15 @@ const sign_in_exp = {
     },
   },
   setup_warning: {
-    no_connector: '',
     no_connector_sms:
-      'No SMS connector set-up yet. Until you finish configuring your SMS connector, you won’t be able to sign in.',
+      'No SMS connector set-up yet. Before completing the configuration, users will not be able to sign in with this method. <a>{{link}}</a> in "Connectors"',
     no_connector_email:
-      'No email connector set-up yet. Until you finish configuring your email connector, you won’t be able to sign in.',
+      'No email connector set-up yet. Before completing the configuration, users will not be able to sign in with this method. <a>{{link}}</a> in "Connectors"',
     no_connector_social:
-      'No social connector set-up yet. Until you finish configuring your social connector, you won’t be able to sign in.',
+      'No social connector set-up yet. Before completing the configuration, users will not be able to sign in with this method. <a>{{link}}</a> in "Connectors"',
     no_added_social_connector:
       'You’ve set up a few social connectors now. Make sure to add some to your sign in experience.',
+    setup_link: 'Set up',
   },
   save_alert: {
     description:
@@ -164,8 +169,8 @@ const sign_in_exp = {
   },
   preview: {
     title: 'Sign-in preview',
-    dark: 'Dark',
-    light: 'Light',
+    live_preview: 'Live preview',
+    live_preview_tip: 'Save to preview changes',
     native: 'Native',
     desktop_web: 'Desktop Web',
     mobile_web: 'Mobile Web',

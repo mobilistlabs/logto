@@ -12,7 +12,7 @@ import DangerousRaw from '@/components/DangerousRaw';
 import IconButton from '@/components/IconButton';
 import Index from '@/components/Index';
 import Spacer from '@/components/Spacer';
-import { onKeyDownHandler } from '@/utilities/a11y';
+import { onKeyDownHandler } from '@/utils/a11y';
 
 import * as styles from './index.module.scss';
 
@@ -28,7 +28,7 @@ type Props = PropsWithChildren<{
   onButtonClick?: () => void;
 }>;
 
-const Step = ({
+function Step({
   children,
   title,
   subtitle,
@@ -39,7 +39,7 @@ const Step = ({
   buttonType = 'outline',
   isLoading,
   onButtonClick,
-}: Props) => {
+}: Props) {
   const [isExpanded, setIsExpanded] = useState(false);
   const isActive = index === activeIndex;
   const isComplete = index < activeIndex;
@@ -105,6 +105,6 @@ const Step = ({
       </div>
     </Card>
   );
-};
+}
 
 export default Step;

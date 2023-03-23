@@ -10,6 +10,11 @@ const users = {
   create_form_password: 'Password',
   create_form_name: 'Full name',
   unnamed: 'Unnamed',
+  search: 'Search by name, email, phone or username',
+  check_user_detail: 'Check user detail',
+  placeholder_title: 'User management',
+  placeholder_description:
+    'Each user has a profile containing all user information. It consists of basic data, social identities, and custom data.',
 };
 
 export default users;

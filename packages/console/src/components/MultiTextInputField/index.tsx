@@ -8,27 +8,29 @@ import MultiTextInput from '../MultiTextInput';
 import * as styles from './index.module.scss';
 
 type Props = MultiTextInputProps &
-  Pick<FormFieldProps, 'isRequired' | 'tooltip'> & {
+  Pick<FormFieldProps, 'isRequired' | 'tip'> & {
     formFieldClassName?: FormFieldProps['className'];
   };
 
-const MultiTextInputField = ({
+function MultiTextInputField({
   title,
   isRequired,
-  tooltip,
+  tip,
   formFieldClassName,
   value,
   ...rest
-}: Props) => (
-  <FormField
-    title={title}
-    isRequired={isRequired}
-    tooltip={tooltip}
-    className={formFieldClassName}
-    headlineClassName={conditional(value && value.length > 1 && styles.headlineWithMultiInputs)}
-  >
-    <MultiTextInput title={title} value={value} {...rest} />
-  </FormField>
-);
+}: Props) {
+  return (
+    <FormField
+      title={title}
+      isRequired={isRequired}
+      tip={tip}
+      className={formFieldClassName}
+      headlineClassName={conditional(value && value.length > 1 && styles.headlineWithMultiInputs)}
+    >
+      <MultiTextInput title={title} value={value} {...rest} />
+    </FormField>
+  );
+}
 
 export default MultiTextInputField;

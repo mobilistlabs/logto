@@ -1,9 +1,8 @@
 import type { LogtoErrorCode, LogtoErrorI18nKey } from '@logto/phrases';
 import type { RequestErrorBody, RequestErrorMetadata } from '@logto/schemas';
 import type { Optional } from '@silverhand/essentials';
-import { conditional } from '@silverhand/essentials';
+import { conditional, pick } from '@silverhand/essentials';
 import i18next from 'i18next';
-import pick from 'lodash.pick';
 import { ZodError } from 'zod';
 
 const formatZodError = ({ issues }: ZodError): string[] =>
@@ -16,6 +15,7 @@ const formatZodError = ({ issues }: ZodError): string[] =>
 
     return base + issue.message;
   });
+
 export default class RequestError extends Error {
   code: LogtoErrorCode;
   status: number;
@@ -33,6 +33,7 @@ export default class RequestError extends Error {
 
     super(message);
 
+    this.name = 'RequestError';
     this.expose = expose;
     this.code = code;
     this.status = status;

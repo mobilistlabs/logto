@@ -1,40 +1,63 @@
 import type { LogtoConfig } from '@logto/node';
 import LogtoClient from '@logto/node';
-import { demoAppApplicationId } from '@logto/schemas/lib/seeds';
+import { demoAppApplicationId } from '@logto/schemas';
+import type { Nullable, Optional } from '@silverhand/essentials';
 import { assert } from '@silverhand/essentials';
-import got from 'got';
+import type { Got } from 'got';
+import { got } from 'got';
 
-import { consent } from '@/api';
-import { demoAppRedirectUri, logtoUrl } from '@/constants';
-import { extractCookie } from '@/utils';
+import { consent, submitInteraction } from '#src/api/index.js';
+import { demoAppRedirectUri, logtoUrl } from '#src/constants.js';
 
-import { MemoryStorage } from './storage';
+import { MemoryStorage } from './storage.js';
 
 export const defaultConfig = {
   endpoint: logtoUrl,
   appId: demoAppApplicationId,
   persistAccessToken: false,
 };
-
 export default class MockClient {
-  public interactionCookie?: string;
+  public rawCookies: string[] = [];
+
+  protected readonly config: LogtoConfig;
 
   private navigateUrl?: string;
   private readonly storage: MemoryStorage;
   private readonly logto: LogtoClient;
+  private readonly api: Got;
 
   constructor(config?: Partial<LogtoConfig>) {
     this.storage = new MemoryStorage();
+    this.config = { ...defaultConfig, ...config };
+    this.api = got.extend({ prefixUrl: this.config.endpoint + '/api' });
 
-    this.logto = new LogtoClient(
-      { ...defaultConfig, ...config },
-      {
-        navigate: (url: string) => {
-          this.navigateUrl = url;
-        },
-        storage: this.storage,
+    this.logto = new LogtoClient(this.config, {
+      navigate: (url: string) => {
+        this.navigateUrl = url;
+      },
+      storage: this.storage,
+    });
+  }
+
+  // TODO: Rename to sessionCookies or something accurate
+  public get interactionCookie(): string {
+    return this.rawCookies.join('; ');
+  }
+
+  public get parsedCookies(): Map<string, Optional<string>> {
+    const map = new Map<string, Optional<string>>();
+
+    for (const cookie of this.rawCookies) {
+      for (const element of cookie.split(';')) {
+        const [key, value] = element.trim().split('=');
+
+        if (key) {
+          map.set(key, value);
+        }
       }
-    );
+    }
+
+    return map;
   }
 
   public async initSession(callbackUri = demoAppRedirectUri) {
@@ -42,7 +65,7 @@ export default class MockClient {
 
     assert(this.navigateUrl, new Error('Unable to navigate to sign in uri'));
     assert(
-      this.navigateUrl.startsWith(`${logtoUrl}/oidc/auth`),
+      this.navigateUrl.startsWith(`${this.config.endpoint}/oidc/auth`),
       new Error('Unable to navigate to sign in uri')
     );
 
@@ -53,18 +76,21 @@ export default class MockClient {
 
     // Note: should redirect to sign-in page
     assert(
-      response.statusCode === 303 && response.headers.location === '/sign-in',
+      response.statusCode === 303 && response.headers.location?.startsWith('/sign-in'),
       new Error('Visit sign in uri failed')
     );
 
     // Get session cookie
-    this.interactionCookie = extractCookie(response);
+    this.rawCookies = response.headers['set-cookie'] ?? [];
     assert(this.interactionCookie, new Error('Get cookie from authorization endpoint failed'));
   }
 
   public async processSession(redirectTo: string) {
     // Note: should redirect to OIDC auth endpoint
-    assert(redirectTo.startsWith(`${logtoUrl}/oidc/auth`), new Error('SignIn or Register failed'));
+    assert(
+      redirectTo.startsWith(`${this.config.endpoint}/oidc/auth`),
+      new Error('SignIn or Register failed')
+    );
 
     const authResponse = await got.get(redirectTo, {
       headers: {
@@ -79,21 +105,27 @@ export default class MockClient {
       new Error('Invoke auth before consent failed')
     );
 
-    this.interactionCookie = extractCookie(authResponse);
+    this.rawCookies = authResponse.headers['set-cookie'] ?? [];
 
-    await this.consent();
+    const signInCallbackUri = await this.consent();
+    await this.logto.handleSignInCallback(signInCallbackUri);
   }
 
   public async getAccessToken(resource?: string) {
     return this.logto.getAccessToken(resource);
   }
 
-  public async getRefreshToken() {
+  public async getRefreshToken(): Promise<Nullable<string>> {
     return this.logto.getRefreshToken();
   }
 
   public async signOut(postSignOutRedirectUri?: string) {
-    return this.logto.signOut(postSignOutRedirectUri);
+    if (!this.navigateUrl) {
+      throw new Error('No navigate URL found for sign-out');
+    }
+
+    await this.logto.signOut(postSignOutRedirectUri);
+    await got(this.navigateUrl);
   }
 
   public async isAuthenticated() {
@@ -105,7 +137,25 @@ export default class MockClient {
   }
 
   public assignCookie(cookie: string) {
-    this.interactionCookie = cookie;
+    this.rawCookies = cookie.split(';').map((value) => value.trim());
+  }
+
+  public async send<Args extends unknown[], T>(
+    api: (cookie: string, ...args: Args) => Promise<T>,
+    ...payload: Args
+  ) {
+    return api(this.interactionCookie, ...payload);
+  }
+
+  public async successSend<Args extends unknown[], T>(
+    api: (cookie: string, ...args: Args) => Promise<T>,
+    ...payload: Args
+  ) {
+    return expect(api(this.interactionCookie, ...payload)).resolves.not.toThrow();
+  }
+
+  public async submitInteraction() {
+    return submitInteraction(this.api, this.interactionCookie);
   }
 
   private readonly consent = async () => {
@@ -113,10 +163,10 @@ export default class MockClient {
     assert(this.interactionCookie, new Error('Session not found'));
     assert(this.interactionCookie.includes('_session.sig'), new Error('Session not found'));
 
-    const { redirectTo } = await consent(this.interactionCookie);
+    const { redirectTo } = await consent(this.api, this.interactionCookie);
 
     // Note: should redirect to oidc auth endpoint
-    assert(redirectTo.startsWith(`${logtoUrl}/oidc/auth`), new Error('Consent failed'));
+    assert(redirectTo.startsWith(`${this.config.endpoint}/oidc/auth`), new Error('Consent failed'));
 
     const authCodeResponse = await got.get(redirectTo, {
       headers: {
@@ -130,6 +180,6 @@ export default class MockClient {
     const signInCallbackUri = authCodeResponse.headers.location;
     assert(signInCallbackUri, new Error('Get sign in callback uri failed'));
 
-    await this.logto.handleSignInCallback(signInCallbackUri);
+    return signInCallbackUri;
   };
 }

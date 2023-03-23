@@ -3,14 +3,13 @@ import type { LocalePhrase } from '../types.js';
 const translation = {
   input: {
     username: 'Utilizador',
-    password: 'Password',
+    password: 'Palavra-passe',
     email: 'Email',
     phone_number: 'Telefone',
-    confirm_password: 'Confirmar password',
+    confirm_password: 'Confirmar palavra-passe',
+    search_region_code: 'Procurar código de região',
   },
   secondary: {
-    sign_in_with: 'Entrar com {{methods, list(type: disjunction;)}}',
-    register_with: 'Create account with {{methods, list(type: disjunction;)}}', // UNTRANSLATED
     social_bind_with:
       'Já tem uma conta? Faça login para agregar {{methods, list(type: disjunction;)}} com a sua identidade social.',
   },
@@ -18,86 +17,112 @@ const translation = {
     sign_in: 'Entrar',
     continue: 'Continuar',
     create_account: 'Criar uma conta',
+    create_account_without_linking: 'Criar conta sem vinculação',
     create: 'Criar',
-    enter_passcode: 'Digite a senha',
+    enter_passcode: 'Introduzir código de verificação',
     confirm: 'Confirmar',
     cancel: 'Cancelar',
-    save_password: 'Save', // UNTRANSLATED
+    save_password: 'Guardar palavra-passe',
     bind: 'Agregar a {{address}}',
+    bind_and_continue: 'Ligar e continuar',
     back: 'Voltar',
     nav_back: 'Anterior',
     agree: 'Aceito',
     got_it: 'Entendi',
     sign_in_with: 'Continuar com {{name}}',
-    forgot_password: 'Esqueceu a password?',
+    forgot_password: 'Esqueceu-se da palavra-passe?',
     switch_to: 'Mudar para {{method}}',
-    sign_in_via_passcode: 'Sign in with verification code', // UNTRANSLATED
-    sign_in_via_password: 'Sign in with password', // UNTRANSLATED
+    sign_in_via_passcode: 'Iniciar sessão com código de verificação',
+    sign_in_via_password: 'Iniciar sessão com palavra-passe',
+    change: 'Alterar {{method}}',
+    link_another_email: 'Vincular outro email',
+    link_another_phone: 'Vincular outro telefone',
+    link_another_email_or_phone: 'Vincular outro email ou telefone',
+    show_password: 'Mostrar palavra-passe',
   },
   description: {
     email: 'email',
     phone_number: 'telefone',
+    username: 'utilizador',
     reminder: 'Lembrete',
     not_found: '404 Não encontrado',
     agree_with_terms: 'Eu li e concordo com os ',
     agree_with_terms_modal: 'Para prosseguir, por favor, concorde com o <link></link>.',
     terms_of_use: 'Termos de uso',
+    sign_in: 'Entrar',
+    privacy_policy: 'Política de privacidade',
     create_account: 'Criar uma conta',
     or: 'ou',
-    enter_passcode: 'A senha foi enviada para o seu {{address}} {{target}}',
-    passcode_sent: 'A senha foi reenviada',
+    and: 'e',
+    enter_passcode: 'O código de verificação foi enviado para o seu {{address}} {{target}}',
+    passcode_sent: 'O código de verificação foi reenviado',
     resend_after_seconds: 'Reenviar após <span>{{seconds}}</span> segundos',
-    resend_passcode: 'Reenviar senha',
-    continue_with: 'Continuar com',
+    resend_passcode: 'Reenviar código de verificação',
     create_account_id_exists: 'A conta com {{type}} {{value}} já existe, gostaria de fazer login?',
-    sign_in_id_does_not_exists: 'A conta com {{type}} {{value}} não existe, gostaria de criar uma?',
-    sign_in_id_does_not_exists_alert: 'The account with {{type}} {{value}} does not exist.', // UNTRANSLATED
-    create_account_id_exists_alert: 'The account with {{type}} {{value}} already exists', // UNTRANSLATED
-    bind_account_title: 'Agregar conta',
-    social_create_account: 'Sem conta? Pode criar uma nova e agregar.',
-    social_bind_account: 'Já tem uma conta? Faça login para agregar a sua identidade social.',
-    social_bind_with_existing: 'Encontramos uma conta relacionada, pode agrega-la diretamente.',
-    reset_password: 'Redefinir Password',
-    reset_password_description_email:
-      'Digite o endereço de email associado à sua conta e enviaremos um email com o código de verificação para redefinir sua senha.',
-    reset_password_description_sms:
-      'Digite o número de telefone associado à sua conta e enviaremos uma mensagem de texto com o código de verificação para redefinir sua senha.',
+    link_account_id_exists: 'A conta com {{type}} {{value}} já existe, gostaria de vinculá-la?',
+    sign_in_id_does_not_exist: 'A conta com {{type}} {{value}} não existe, gostaria de criar uma?',
+    sign_in_id_does_not_exist_alert: 'A conta com {{type}} {{value}} não existe.',
+    create_account_id_exists_alert:
+      'A conta com {{type}} {{value}} está vinculada a outra conta. Por favor, tente outro {{type}}.',
+    social_identity_exist:
+      'O {{type}} {{value}} está vinculado a outra conta. Por favor, tente outro {{type}}.',
+    bind_account_title: 'Vincular ou criar conta',
+    social_create_account: 'Pode criar uma nova conta.',
+    social_link_email: 'Pode vincular outro email',
+    social_link_phone: 'Pode vincular outro telefone',
+    social_link_email_or_phone: 'Pode vincular outro email ou telefone',
+    social_bind_with_existing:
+      'Encontramos uma conta relacionada registrada e você pode vinculá-la diretamente.',
+    reset_password: 'Esqueceu a senha',
+    reset_password_description:
+      'Insira os {{types, list(type: disjunction;)}} associados à sua conta e enviaremos o código de verificação para redefinir sua senha.',
     new_password: 'Nova Senha',
-    set_password: 'Set password', // UNTRANSLATED
-    password_changed: 'Password Changed', // UNTRANSLATED
-    no_account: 'No account yet? ', // UNTRANSLATED
-    have_account: 'Already had an account?', // UNTRANSLATED
-    enter_password: 'Enter Password', // UNTRANSLATED
-    enter_password_for: 'Sign in with the password to {{method}} {{value}}', // UNTRANSLATED
-    enter_username: 'Enter username', // UNTRANSLATED
+    set_password: 'Definir senha',
+    password_changed: 'Senha alterada',
+    no_account: 'Ainda não tem conta?',
+    have_account: 'Já tem conta?',
+    enter_password: 'Digite a senha',
+    enter_password_for: 'Faça login com a senha do {{method}} {{value}}',
+    enter_username: 'Definir nome de usuário',
     enter_username_description:
-      'Username is an alternative for sign-in. Username must contain only letters, numbers, and underscores.', // UNTRANSLATED
-    link_email: 'Link email', // UNTRANSLATED
-    link_phone: 'Link phone', // UNTRANSLATED
-    link_email_or_phone: 'Link email or phone', // UNTRANSLATED
-    link_email_description: 'For added security, please link your email with the account.', // UNTRANSLATED
-    link_phone_description: 'For added security, please link your phone with the account.', // UNTRANSLATED
+      'O nome de usuário é uma alternativa para o login. O nome de usuário deve conter apenas letras, números e sublinhados.',
+    link_email: 'Vincular email',
+    link_phone: 'Vincular telefone',
+    link_email_or_phone: 'Vincular email ou telefone',
+    link_email_description: 'Para maior segurança, vincule o seu email à conta.',
+    link_phone_description: 'Para maior segurança, vincule o seu telefone à conta.',
     link_email_or_phone_description:
-      'For added security, please link your email or phone with the account.', // UNTRANSLATED
-    continue_with_more_information: 'For added security, please complete below account details.', // UNTRANSLATED
+      'Para maior segurança, vincule o seu email ou telefone à conta.',
+    continue_with_more_information:
+      'Para maior segurança, por favor complete os detalhes da conta abaixo.',
+    create_your_account: 'Crie a sua conta',
+    sign_in_to_your_account: 'Inicie sessão na sua conta',
+    no_region_code_found: 'Não foi possível encontrar o código de região do seu telefone.',
   },
   error: {
-    username_password_mismatch: 'O Utilizador e a password não correspondem',
+    general_required: `{{types, list(type: disjunction;)}} is necessário`,
+    general_invalid: `O {{types, list(type: disjunction;)}} é inválido`,
     username_required: 'Utilizador necessário',
     password_required: 'Password necessária',
     username_exists: 'O nome de utilizador já existe',
     username_should_not_start_with_number: 'O nome de utilizador não deve começar com um número',
-    username_valid_charset:
+    username_invalid_charset:
       'O nome de utilizador deve conter apenas letras, números ou underscores.',
     invalid_email: 'O email é inválido',
     invalid_phone: 'O número de telefone é inválido',
     password_min_length: 'A password requer um mínimo de {{min}} caracteres',
+    invalid_password:
+      'A senha requer um mínimo de {{min}} caracteres e contém uma mistura de letras, números e símbolos.',
     passwords_do_not_match: 'As passwords não coincidem',
-    invalid_passcode: 'A senha é inválida',
+    invalid_passcode: 'O código de verificação é inválido.',
     invalid_connector_auth: 'A autorização é inválida',
     invalid_connector_request: 'Os dados do conector são inválidos',
     unknown: 'Erro desconhecido. Por favor, tente novamente mais tarde.',
     invalid_session: 'Sessão não encontrada. Volte e faça login novamente.',
+    timeout: 'Tempo limite de sessão. Volte e faça login novamente.',
+  },
+  demo_app: {
+    notification: 'Dica: Crie uma conta primeiro para testar a experiência de login.',
   },
 };
 

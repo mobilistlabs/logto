@@ -1,9 +1,11 @@
+import type { ConnectorFactory } from '@logto/cli/lib/connector/index.js';
 import { ConnectorPlatform } from '@logto/connector-kit';
 import type { Connector } from '@logto/schemas';
 import { ConnectorType } from '@logto/schemas';
+import { DemoConnector } from '@logto/shared';
 import { any } from 'zod';
 
-import type { LogtoConnector, ConnectorFactory } from '#src/connectors/types.js';
+import type { LogtoConnector } from '#src/utils/connectors/types.js';
 
 import {
   mockConnector0,
@@ -24,6 +26,8 @@ import {
 } from './connector-base-data.js';
 
 export {
+  mockConnector0,
+  mockConnector1,
   mockMetadata,
   mockMetadata0,
   mockMetadata1,
@@ -31,9 +35,11 @@ export {
   mockMetadata3,
 } from './connector-base-data.js';
 
+const { jest } = import.meta;
+
 export const mockConnector: Connector = {
+  tenantId: 'fake_tenant',
   id: 'id',
-  enabled: true,
   config: {},
   createdAt: 1_234_567_890_123,
   syncProfile: false,
@@ -205,13 +211,27 @@ export const mockGoogleConnector: LogtoConnector = {
   dbEntry: {
     ...mockConnector,
     id: 'google',
-    enabled: false,
   },
   metadata: {
     ...mockMetadata,
     id: 'google',
     target: 'google',
     platform: ConnectorPlatform.Web,
+  },
+  type: ConnectorType.Social,
+  ...mockLogtoConnector,
+};
+
+export const mockDemoSocialConnector: LogtoConnector = {
+  dbEntry: {
+    ...mockConnector,
+    id: 'demo-social',
+  },
+  metadata: {
+    ...mockMetadata,
+    id: DemoConnector.Social,
+    target: 'github',
+    platform: null,
   },
   type: ConnectorType.Social,
   ...mockLogtoConnector,
@@ -227,15 +247,14 @@ export const mockLogtoConnectors = [
   mockWechatNativeConnector,
 ];
 
-export const disabledSocialTarget01 = 'disableSocialTarget-id01';
-export const disabledSocialTarget02 = 'disableSocialTarget-id02';
-export const enabledSocialTarget01 = 'enabledSocialTarget-id01';
+export const socialTarget01 = 'socialTarget-id01';
+export const socialTarget02 = 'socialTarget-id02';
 
 export const mockSocialConnectors: LogtoConnector[] = [
   {
     dbEntry: {
+      tenantId: 'fake_tenant',
       id: 'id0',
-      enabled: false,
       config: {},
       createdAt: 1_234_567_890_123,
       syncProfile: false,
@@ -244,15 +263,15 @@ export const mockSocialConnectors: LogtoConnector[] = [
     },
     metadata: {
       ...mockMetadata,
-      target: disabledSocialTarget01,
+      target: socialTarget01,
     },
     type: ConnectorType.Social,
     ...mockLogtoConnector,
   },
   {
     dbEntry: {
+      tenantId: 'fake_tenant',
       id: 'id1',
-      enabled: true,
       config: {},
       createdAt: 1_234_567_890_123,
       syncProfile: false,
@@ -261,24 +280,7 @@ export const mockSocialConnectors: LogtoConnector[] = [
     },
     metadata: {
       ...mockMetadata,
-      target: enabledSocialTarget01,
-    },
-    type: ConnectorType.Social,
-    ...mockLogtoConnector,
-  },
-  {
-    dbEntry: {
-      id: 'id2',
-      enabled: false,
-      config: {},
-      createdAt: 1_234_567_890_123,
-      syncProfile: false,
-      metadata: {},
-      connectorId: 'id2',
-    },
-    metadata: {
-      ...mockMetadata,
-      target: disabledSocialTarget02,
+      target: socialTarget02,
     },
     type: ConnectorType.Social,
     ...mockLogtoConnector,

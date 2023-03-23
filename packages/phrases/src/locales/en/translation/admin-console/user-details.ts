@@ -14,6 +14,8 @@ const user_details = {
     congratulations: 'This user has been reset',
     new_password: 'New password:',
   },
+  tab_settings: 'Settings',
+  tab_roles: 'Roles',
   tab_logs: 'User logs',
   settings: 'Settings',
   settings_description:
@@ -38,6 +40,24 @@ const user_details = {
       'You are removing the existing <name/> identity. Are you sure you want to do that?',
   },
   suspended: 'Suspended',
+  roles: {
+    name_column: 'Role',
+    description_column: 'Description',
+    assign_button: 'Assign Roles',
+    delete_description:
+      'This action will remove this role from this user. The role itself will still exist, but it will no longer be associated with this user.',
+    deleted: '{{name}} was successfully removed from this user.',
+    assign_title: 'Assign roles to {{name}}',
+    assign_subtitle: 'Authorize {{name}} one or more roles',
+    assign_role_field: 'Assign roles',
+    role_search_placeholder: 'Search by role name',
+    added_text: '{{value, number}} added',
+    assigned_user_count: '{{value, number}} users',
+    confirm_assign: 'Assign roles',
+    role_assigned: 'Successfully assigned role(s)',
+    search: 'Search by role name, description or ID',
+    empty: 'No role available',
+  },
 };
 
 export default user_details;

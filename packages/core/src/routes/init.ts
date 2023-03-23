@@ -1,65 +1,77 @@
-import { UserRole } from '@logto/schemas';
+import { getManagementApiResourceIndicator } from '@logto/schemas';
 import Koa from 'koa';
-import mount from 'koa-mount';
 import Router from 'koa-router';
-import type { Provider } from 'oidc-provider';
 
-import koaAuth from '#src/middleware/koa-auth.js';
-import koaLogSession from '#src/middleware/koa-log-session.js';
-import adminUserRoutes from '#src/routes/admin-user.js';
-import applicationRoutes from '#src/routes/application.js';
-import authnRoutes from '#src/routes/authn.js';
-import connectorRoutes from '#src/routes/connector.js';
-import customPhraseRoutes from '#src/routes/custom-phrase.js';
-import dashboardRoutes from '#src/routes/dashboard.js';
-import logRoutes from '#src/routes/log.js';
-import phraseRoutes from '#src/routes/phrase.js';
-import resourceRoutes from '#src/routes/resource.js';
-import roleRoutes from '#src/routes/role.js';
-import sessionRoutes from '#src/routes/session/index.js';
-import settingRoutes from '#src/routes/setting.js';
-import signInExperiencesRoutes from '#src/routes/sign-in-experience.js';
-import statusRoutes from '#src/routes/status.js';
-import swaggerRoutes from '#src/routes/swagger.js';
-import wellKnownRoutes from '#src/routes/well-known.js';
+import { EnvSet } from '#src/env-set/index.js';
+import koaBodyEtag from '#src/middleware/koa-body-etag.js';
+import koaCors from '#src/middleware/koa-cors.js';
+import type TenantContext from '#src/tenants/TenantContext.js';
 
+import koaAuth from '../middleware/koa-auth/index.js';
+import adminUserRoleRoutes from './admin-user-role.js';
+import adminUserRoutes from './admin-user.js';
+import applicationRoutes from './application.js';
+import authnRoutes from './authn.js';
+import connectorRoutes from './connector.js';
+import customPhraseRoutes from './custom-phrase.js';
+import dashboardRoutes from './dashboard.js';
+import hookRoutes from './hook.js';
+import interactionRoutes from './interaction/index.js';
+import logRoutes from './log.js';
+import logtoConfigRoutes from './logto-config.js';
+import resourceRoutes from './resource.js';
+import roleRoutes from './role.js';
+import roleScopeRoutes from './role.scope.js';
+import signInExperiencesRoutes from './sign-in-experience/index.js';
+import statusRoutes from './status.js';
+import swaggerRoutes from './swagger.js';
 import type { AnonymousRouter, AuthedRouter } from './types.js';
+import userAssetsRoutes from './user-assets.js';
+import verificationCodeRoutes from './verification-code.js';
+import wellKnownRoutes from './well-known.js';
 
-const createRouters = (provider: Provider) => {
-  const sessionRouter: AnonymousRouter = new Router();
-  sessionRouter.use(koaLogSession(provider));
-  sessionRoutes(sessionRouter, provider);
+const createRouters = (tenant: TenantContext) => {
+  const interactionRouter: AnonymousRouter = new Router();
+  interactionRoutes(interactionRouter, tenant);
 
   const managementRouter: AuthedRouter = new Router();
-  managementRouter.use(koaAuth(UserRole.Admin));
-  applicationRoutes(managementRouter);
-  settingRoutes(managementRouter);
-  connectorRoutes(managementRouter);
-  resourceRoutes(managementRouter);
-  signInExperiencesRoutes(managementRouter);
-  adminUserRoutes(managementRouter);
-  logRoutes(managementRouter);
-  roleRoutes(managementRouter);
-  dashboardRoutes(managementRouter);
-  customPhraseRoutes(managementRouter);
+  managementRouter.use(koaAuth(tenant.envSet, getManagementApiResourceIndicator(tenant.id)));
+  applicationRoutes(managementRouter, tenant);
+  logtoConfigRoutes(managementRouter, tenant);
+  connectorRoutes(managementRouter, tenant);
+  resourceRoutes(managementRouter, tenant);
+  signInExperiencesRoutes(managementRouter, tenant);
+  adminUserRoutes(managementRouter, tenant);
+  adminUserRoleRoutes(managementRouter, tenant);
+  logRoutes(managementRouter, tenant);
+  roleRoutes(managementRouter, tenant);
+  roleScopeRoutes(managementRouter, tenant);
+  dashboardRoutes(managementRouter, tenant);
+  customPhraseRoutes(managementRouter, tenant);
+  hookRoutes(managementRouter, tenant);
+  verificationCodeRoutes(managementRouter, tenant);
+  userAssetsRoutes(managementRouter, tenant);
 
   const anonymousRouter: AnonymousRouter = new Router();
-  phraseRoutes(anonymousRouter, provider);
-  wellKnownRoutes(anonymousRouter, provider);
-  statusRoutes(anonymousRouter);
-  authnRoutes(anonymousRouter);
+  wellKnownRoutes(anonymousRouter, tenant);
+  statusRoutes(anonymousRouter, tenant);
+  authnRoutes(anonymousRouter, tenant);
   // The swagger.json should contain all API routers.
-  swaggerRoutes(anonymousRouter, [sessionRouter, managementRouter, anonymousRouter]);
+  swaggerRoutes(anonymousRouter, [interactionRouter, managementRouter, anonymousRouter]);
 
-  return [sessionRouter, managementRouter, anonymousRouter];
+  return [interactionRouter, managementRouter, anonymousRouter];
 };
 
-export default function initRouter(app: Koa, provider: Provider) {
+export default function initApis(tenant: TenantContext): Koa {
   const apisApp = new Koa();
 
-  for (const router of createRouters(provider)) {
+  const { adminUrlSet, cloudUrlSet } = EnvSet.values;
+  apisApp.use(koaCors(adminUrlSet, cloudUrlSet));
+  apisApp.use(koaBodyEtag());
+
+  for (const router of createRouters(tenant)) {
     apisApp.use(router.routes()).use(router.allowedMethods());
   }
 
-  app.use(mount('/api', apisApp));
+  return apisApp;
 }

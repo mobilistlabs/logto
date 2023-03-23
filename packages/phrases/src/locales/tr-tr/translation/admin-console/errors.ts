@@ -13,9 +13,13 @@ const errors = {
   more_details: 'Daha çok detay',
   username_pattern_error:
     'Kullanıcı adı yalnızca harf, sayı veya alt çizgi içermeli ve bir sayı ile başlamamalıdır.',
-  password_pattern_error: 'Şifre minimum 6 karakter olmalı',
+  password_pattern_error:
+    'Password requires a minimum of {{min}} characters and contains a mix of letters, numbers, and symbols.', // UNTRANSLATED
   insecure_contexts: 'Güvenli olmayan bağlamlar (HTTPS olmayan) desteklenmez.',
   unexpected_error: 'Beklenmedik bir hata oluştu',
+  not_found: '404 not found', // UNTRANSLATED
+  create_internal_role_violation:
+    'You are creating a new internal role which is forbidden by Logto. Try another name that does not start with "#internal:".', // UNTRANSLATED
 };
 
 export default errors;

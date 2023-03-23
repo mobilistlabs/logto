@@ -1,6 +1,7 @@
-import type { CreateUser, Role, User } from '@logto/schemas';
-import { SignUpIdentifier, userInfoSelectFields } from '@logto/schemas';
-import pick from 'lodash.pick';
+import type { CreateUser, Role, SignInExperience, User } from '@logto/schemas';
+import { userInfoSelectFields } from '@logto/schemas';
+import { createMockUtils, pickDefault } from '@logto/shared/esm';
+import { pick } from '@silverhand/essentials';
 
 import {
   mockUser,
@@ -8,18 +9,13 @@ import {
   mockUserListResponse,
   mockUserResponse,
 } from '#src/__mocks__/index.js';
-import { encryptUserPassword } from '#src/lib/user.js';
-import { findRolesByRoleNames } from '#src/queries/roles.js';
-import {
-  hasUser,
-  findUserById,
-  updateUserById,
-  deleteUserIdentity,
-  deleteUserById,
-} from '#src/queries/user.js';
+import Libraries from '#src/tenants/Libraries.js';
+import Queries from '#src/tenants/Queries.js';
+import { MockTenant, Partial2 } from '#src/test-utils/tenant.js';
 import { createRequester } from '#src/utils/test-utils.js';
 
-import adminUserRoutes from './admin-user.js';
+const { jest } = import.meta;
+const { mockEsmWithActual } = createMockUtils(jest);
 
 const filterUsersWithSearch = (users: User[], search: string) =>
   users.filter((user) =>
@@ -28,71 +24,91 @@ const filterUsersWithSearch = (users: User[], search: string) =>
     )
   );
 
-const mockFindDefaultSignInExperience = jest.fn(async () => ({
-  signUp: {
-    identifier: SignUpIdentifier.None,
-    password: false,
-    verify: false,
+const mockedQueries = {
+  oidcModelInstances: { revokeInstanceByUserId: jest.fn() },
+  signInExperiences: {
+    findDefaultSignInExperience: jest.fn(
+      async () =>
+        // @ts-expect-error
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        ({
+          signUp: {
+            identifiers: [],
+            password: false,
+            verify: false,
+          },
+        } as SignInExperience)
+    ),
   },
-}));
-
-jest.mock('#src/queries/sign-in-experience.js', () => ({
-  findDefaultSignInExperience: jest.fn(async () => mockFindDefaultSignInExperience()),
-}));
+  users: {
+    countUsers: jest.fn(async (search) => ({
+      count: search
+        ? filterUsersWithSearch(mockUserList, String(search)).length
+        : mockUserList.length,
+    })),
+    findUsers: jest.fn(
+      async (limit, offset, search): Promise<User[]> =>
+        // For testing, type should be `Search` but we use `string` in `filterUsersWithSearch()` here
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        search ? filterUsersWithSearch(mockUserList, String(search)) : mockUserList
+    ),
+    findUserById: jest.fn(async (id: string) => mockUser),
+    hasUser: jest.fn(async () => mockHasUser()),
+    hasUserWithEmail: jest.fn(async () => mockHasUserWithEmail()),
+    hasUserWithPhone: jest.fn(async () => mockHasUserWithPhone()),
+    updateUserById: jest.fn(
+      async (_, data: Partial<CreateUser>): Promise<User> => ({
+        ...mockUser,
+        ...data,
+      })
+    ),
+    deleteUserById: jest.fn(),
+    deleteUserIdentity: jest.fn(),
+  },
+  roles: {
+    findRolesByRoleNames: jest.fn(
+      async (): Promise<Role[]> => [
+        { tenantId: 'fake_tenant', id: 'role_id', name: 'admin', description: 'none' },
+      ]
+    ),
+  },
+  usersRoles: {
+    deleteUsersRolesByUserIdAndRoleId: jest.fn(),
+  },
+} satisfies Partial2<Queries>;
 
 const mockHasUser = jest.fn(async () => false);
 const mockHasUserWithEmail = jest.fn(async () => false);
 const mockHasUserWithPhone = jest.fn(async () => false);
-jest.mock('#src/queries/user.js', () => ({
-  countUsers: jest.fn(async (search) => ({
-    count: search ? filterUsersWithSearch(mockUserList, search).length : mockUserList.length,
-  })),
-  findUsers: jest.fn(
-    async (limit, offset, search): Promise<User[]> =>
-      search ? filterUsersWithSearch(mockUserList, search) : mockUserList
-  ),
-  findUserById: jest.fn(async (): Promise<User> => mockUser),
-  hasUser: jest.fn(async () => mockHasUser()),
-  hasUserWithEmail: jest.fn(async () => mockHasUserWithEmail()),
-  hasUserWithPhone: jest.fn(async () => mockHasUserWithPhone()),
-  updateUserById: jest.fn(
-    async (_, data: Partial<CreateUser>): Promise<User> => ({
-      ...mockUser,
-      ...data,
-    })
-  ),
-  deleteUserById: jest.fn(),
-  deleteUserIdentity: jest.fn(),
-}));
 
-jest.mock('#src/lib/user.js', () => ({
-  generateUserId: jest.fn(() => 'fooId'),
+const { revokeInstanceByUserId } = mockedQueries.oidcModelInstances;
+const { hasUser, findUserById, updateUserById, deleteUserIdentity, deleteUserById } =
+  mockedQueries.users;
+
+const { encryptUserPassword } = await mockEsmWithActual('#src/libraries/user.js', () => ({
   encryptUserPassword: jest.fn(() => ({
     passwordEncrypted: 'password',
     passwordEncryptionMethod: 'Argon2i',
   })),
+}));
+
+const usersLibraries = {
+  generateUserId: jest.fn(async () => 'fooId'),
   insertUser: jest.fn(
     async (user: CreateUser): Promise<User> => ({
       ...mockUser,
       ...user,
     })
   ),
-}));
+} satisfies Partial<Libraries['users']>;
 
-jest.mock('#src/queries/roles.js', () => ({
-  findRolesByRoleNames: jest.fn(
-    async (): Promise<Role[]> => [{ id: 'role_id', name: 'admin', description: 'none' }]
-  ),
-}));
-
-const revokeInstanceByUserId = jest.fn();
-jest.mock('#src/queries/oidc-model-instance.js', () => ({
-  revokeInstanceByUserId: async (modelName: string, userId: string) =>
-    revokeInstanceByUserId(modelName, userId),
-}));
+const adminUserRoutes = await pickDefault(import('./admin-user.js'));
 
 describe('adminUserRoutes', () => {
-  const userRequest = createRequester({ authedRoutes: adminUserRoutes });
+  const tenantContext = new MockTenant(undefined, mockedQueries, undefined, {
+    users: usersLibraries,
+  });
+  const userRequest = createRequester({ authedRoutes: adminUserRoutes, tenantContext });
 
   afterEach(() => {
     jest.clearAllMocks();
@@ -126,13 +142,13 @@ describe('adminUserRoutes', () => {
 
   it('POST /users', async () => {
     const username = 'MJAtLogto';
-    const password = 'PASSWORD';
+    const password = 'PASSWORD1234';
     const name = 'Michael';
-    const primaryEmail = 'foo@logto.io';
+    const { primaryEmail, primaryPhone } = mockUser;
 
     const response = await userRequest
       .post('/users')
-      .send({ primaryEmail, username, password, name });
+      .send({ primaryEmail, primaryPhone, username, password, name });
     expect(response.status).toEqual(200);
     expect(response.body).toEqual({
       ...mockUserResponse,
@@ -144,7 +160,6 @@ describe('adminUserRoutes', () => {
 
   it('POST /users should throw with invalid input params', async () => {
     const username = 'MJAtLogto';
-    const password = 'PASSWORD';
     const name = 'Michael';
 
     // Invalid input format
@@ -158,7 +173,7 @@ describe('adminUserRoutes', () => {
     mockHasUser.mockImplementationOnce(async () => true);
 
     const username = 'MJAtLogto';
-    const password = 'PASSWORD';
+    const password = 'PASSWORD1234';
     const name = 'Michael';
 
     await expect(
@@ -178,14 +193,17 @@ describe('adminUserRoutes', () => {
       .send({ username, name, avatar, primaryEmail, primaryPhone });
 
     expect(response.status).toEqual(200);
-    expect(response.body).toEqual({
-      ...mockUserResponse,
-      primaryEmail,
-      primaryPhone,
-      username,
-      name,
-      avatar,
-    });
+    expect(updateUserById).toHaveBeenCalledWith(
+      'foo',
+      {
+        primaryEmail,
+        primaryPhone,
+        username,
+        name,
+        avatar,
+      },
+      expect.anything()
+    );
   });
 
   it('PATCH /users/:userId should allow empty string for clearable fields', async () => {
@@ -193,12 +211,15 @@ describe('adminUserRoutes', () => {
       .patch('/users/foo')
       .send({ name: '', avatar: '', primaryEmail: '' });
     expect(response.status).toEqual(200);
-    expect(response.body).toEqual({
-      ...mockUserResponse,
-      name: '',
-      avatar: '',
-      primaryEmail: '',
-    });
+    expect(updateUserById).toHaveBeenCalledWith(
+      'foo',
+      {
+        name: '',
+        avatar: '',
+        primaryEmail: '',
+      },
+      expect.anything()
+    );
   });
 
   it('PATCH /users/:userId should allow null values for clearable fields', async () => {
@@ -206,12 +227,15 @@ describe('adminUserRoutes', () => {
       .patch('/users/foo')
       .send({ name: null, username: null, primaryPhone: null });
     expect(response.status).toEqual(200);
-    expect(response.body).toEqual({
-      ...mockUserResponse,
-      name: null,
-      username: null,
-      primaryPhone: null,
-    });
+    expect(updateUserById).toHaveBeenCalledWith(
+      'foo',
+      {
+        name: null,
+        username: null,
+        primaryPhone: null,
+      },
+      expect.anything()
+    );
   });
 
   it('PATCH /users/:userId should allow partial update', async () => {
@@ -219,18 +243,24 @@ describe('adminUserRoutes', () => {
 
     const updateNameResponse = await userRequest.patch('/users/foo').send({ name });
     expect(updateNameResponse.status).toEqual(200);
-    expect(updateNameResponse.body).toEqual({
-      ...mockUserResponse,
-      name,
-    });
+    expect(updateUserById).toHaveBeenCalledWith(
+      'foo',
+      {
+        name,
+      },
+      expect.anything()
+    );
 
     const avatar = 'https://www.michael.png';
     const updateAvatarResponse = await userRequest.patch('/users/foo').send({ avatar });
     expect(updateAvatarResponse.status).toEqual(200);
-    expect(updateAvatarResponse.body).toEqual({
-      ...mockUserResponse,
-      avatar,
-    });
+    expect(updateUserById).toHaveBeenCalledWith(
+      'foo',
+      {
+        avatar,
+      },
+      expect.anything()
+    );
   });
 
   it('PATCH /users/:userId should throw when avatar URL is invalid', async () => {
@@ -251,8 +281,7 @@ describe('adminUserRoutes', () => {
     const name = 'Michael';
     const avatar = 'http://www.michael.png';
 
-    const mockFindUserById = findUserById as jest.Mock;
-    mockFindUserById.mockImplementationOnce(() => {
+    findUserById.mockImplementationOnce(() => {
       throw new Error(' ');
     });
 
@@ -287,38 +316,12 @@ describe('adminUserRoutes', () => {
     ).resolves.toHaveProperty('status', 422);
   });
 
-  it('PATCH /users/:userId should throw if role names are invalid', async () => {
-    const mockedFindRolesByRoleNames = findRolesByRoleNames as jest.Mock;
-    mockedFindRolesByRoleNames.mockImplementationOnce(
-      async (): Promise<Role[]> => [
-        { id: 'role_id1', name: 'worker', description: 'none' },
-        { id: 'role_id2', name: 'cleaner', description: 'none' },
-      ]
-    );
-    await expect(
-      userRequest.patch('/users/foo').send({ roleNames: ['admin'] })
-    ).resolves.toHaveProperty('status', 400);
-    expect(findUserById).toHaveBeenCalledTimes(1);
-    expect(updateUserById).not.toHaveBeenCalled();
-  });
-
-  it('PATCH /users/:userId should update if roleNames field is an empty array', async () => {
-    const roleNames: string[] = [];
-
-    const response = await userRequest.patch('/users/foo').send({ roleNames });
-    expect(response.status).toEqual(200);
-    expect(response.body).toEqual({
-      ...mockUserResponse,
-      roleNames,
-    });
-  });
-
   it('PATCH /users/:userId/password', async () => {
     const mockedUserId = 'foo';
-    const password = '123456';
+    const password = '1234asd$';
     const response = await userRequest.patch(`/users/${mockedUserId}/password`).send({ password });
     expect(encryptUserPassword).toHaveBeenCalledWith(password);
-    expect(updateUserById).toHaveBeenCalledTimes(1);
+    expect(findUserById).toHaveBeenCalledTimes(1);
     expect(response.status).toEqual(200);
     expect(response.body).toEqual({
       ...mockUserResponse,
@@ -327,12 +330,14 @@ describe('adminUserRoutes', () => {
 
   it('PATCH /users/:userId/password should throw if user cannot be found', async () => {
     const notExistedUserId = 'notExistedUserId';
-    const dummyPassword = '123456';
-    const mockedFindUserById = findUserById as jest.Mock;
-    mockedFindUserById.mockImplementationOnce((userId) => {
+    const dummyPassword = '1234asd$';
+
+    findUserById.mockImplementationOnce(async (userId) => {
       if (userId === notExistedUserId) {
         throw new Error(' ');
       }
+
+      return mockUser;
     });
 
     await expect(
@@ -371,17 +376,17 @@ describe('adminUserRoutes', () => {
 
   it('DELETE /users/:userId should throw if user cannot be found', async () => {
     const notExistedUserId = 'notExistedUserId';
-    const mockedFindUserById = findUserById as jest.Mock;
-    mockedFindUserById.mockImplementationOnce((userId) => {
+
+    deleteUserById.mockImplementationOnce((userId) => {
       if (userId === notExistedUserId) {
         throw new Error(' ');
       }
     });
+
     await expect(userRequest.delete(`/users/${notExistedUserId}`)).resolves.toHaveProperty(
       'status',
       500
     );
-    expect(deleteUserById).not.toHaveBeenCalled();
   });
 
   it('DELETE /users/:userId/identities/:target should throw if user cannot be found', async () => {

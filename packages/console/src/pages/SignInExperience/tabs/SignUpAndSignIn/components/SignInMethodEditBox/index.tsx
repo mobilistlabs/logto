@@ -3,26 +3,22 @@ import { conditional } from '@silverhand/essentials';
 import { Controller, useFieldArray, useFormContext } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 
-import DragDropProvider from '@/components/Transfer/DragDropProvider';
-import DraggableItem from '@/components/Transfer/DraggableItem';
+import { DragDropProvider, DraggableItem } from '@/components/DragDrop';
 import useEnabledConnectorTypes from '@/hooks/use-enabled-connector-types';
-import type { SignInExperienceForm } from '@/pages/SignInExperience/types';
-
 import {
+  identifierRequiredConnectorMapping,
   signInIdentifiers,
-  signInIdentifierToRequiredConnectorMapping,
-  signUpIdentifierToRequiredConnectorMapping,
-  signUpToSignInIdentifierMapping,
-} from '../../constants';
+  signUpIdentifiersMapping,
+} from '@/pages/SignInExperience/constants';
+import type { SignInExperienceForm } from '@/pages/SignInExperience/types';
+import { getSignUpRequiredConnectorTypes } from '@/pages/SignInExperience/utils/identifier';
+
+import { createSignInMethod } from '../../utils';
 import AddButton from './AddButton';
 import SignInMethodItem from './SignInMethodItem';
 import * as styles from './index.module.scss';
-import {
-  getSignInMethodPasswordCheckState,
-  getSignInMethodVerificationCodeCheckState,
-} from './utilities';
 
-const SignInMethodEditBox = () => {
+function SignInMethodEditBox() {
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
   const {
     control,
@@ -39,7 +35,10 @@ const SignInMethodEditBox = () => {
 
   const revalidate = () => {
     if (submitCount) {
-      void trigger(`signIn.methods`);
+      // Note: wait for the form to be updated before validating the new data.
+      setTimeout(() => {
+        void trigger('signIn.methods');
+      }, 0);
     }
   };
 
@@ -55,8 +54,8 @@ const SignInMethodEditBox = () => {
     verify: isSignUpVerificationRequired,
   } = signUp;
 
-  const requiredSignInIdentifiers = signUpToSignInIdentifierMapping[signUpIdentifier];
-  const ignoredWarningConnectors = signUpIdentifierToRequiredConnectorMapping[signUpIdentifier];
+  const requiredSignInIdentifiers = signUpIdentifiersMapping[signUpIdentifier];
+  const ignoredWarningConnectors = getSignUpRequiredConnectorTypes(signUpIdentifier);
 
   const signInIdentifierOptions = signInIdentifiers.filter((candidateIdentifier) =>
     fields.every(({ identifier }) => identifier !== candidateIdentifier)
@@ -67,13 +66,14 @@ const SignInMethodEditBox = () => {
       <DragDropProvider>
         {fields.map((signInMethod, index) => {
           const { id, identifier, verificationCode, isPasswordPrimary } = signInMethod;
-
+          const signInRelatedConnector = identifierRequiredConnectorMapping[identifier];
           const requiredConnectors =
             conditional(
               verificationCode &&
-                signInIdentifierToRequiredConnectorMapping[identifier].filter(
-                  (connector) => !ignoredWarningConnectors.includes(connector)
-                )
+                signInRelatedConnector &&
+                !ignoredWarningConnectors.includes(signInRelatedConnector) && [
+                  signInRelatedConnector,
+                ]
             ) ?? [];
 
           return (
@@ -142,17 +142,12 @@ const SignInMethodEditBox = () => {
         options={signInIdentifierOptions}
         hasSelectedIdentifiers={fields.length > 0}
         onSelected={(identifier) => {
-          append({
-            identifier,
-            password: getSignInMethodPasswordCheckState(identifier, isSignUpPasswordRequired),
-            verificationCode: getSignInMethodVerificationCodeCheckState(identifier),
-            isPasswordPrimary: true,
-          });
+          append(createSignInMethod(identifier));
           revalidate();
         }}
       />
     </div>
   );
-};
+}
 
 export default SignInMethodEditBox;

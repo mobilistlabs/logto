@@ -1,7 +1,7 @@
 const applications = {
   title: 'Applications',
   subtitle:
-    'Set up a mobile, single page or traditional application to use Logto for authentication',
+    'Set up Logto authentication for your native, single page, machine to machine, or traditional application',
   create: 'Create Application',
   application_name: 'Application name',
   application_name_placeholder: 'My App',
@@ -44,6 +44,9 @@ const applications = {
     description_by_sdk:
       'This quick start guide demonstrates how to integrate Logto into {{sdk}} app',
   },
+  placeholder_title: 'Select an application type to continue',
+  placeholder_description:
+    'Logto uses an application entity for OIDC to help with tasks such as identifying your apps, managing sign-in, and creating audit logs.',
 };
 
 export default applications;

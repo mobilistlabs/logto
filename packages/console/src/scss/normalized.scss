@@ -20,41 +20,6 @@ input {
   outline: none;
 }
 
-table {
-  border: 1px solid var(--color-divider);
-  border-spacing: 0;
-  width: 100%;
-  table-layout: fixed;
-
-  thead {
-    th {
-      font: var(--font-subhead-2);
-      color: var(--color-text);
-      padding: _.unit(3);
-      border-bottom: 1px solid var(--color-divider);
-      text-align: left;
-
-      &:first-child,
-      &:last-child {
-        padding: _.unit(3) _.unit(8);
-      }
-    }
-  }
-
-  tbody {
-    td {
-      font: var(--font-body-medium);
-      border-bottom: 1px solid var(--color-divider);
-      padding: _.unit(3) _.unit(2);
-
-      &:first-child,
-      &:last-child {
-        padding: _.unit(3) _.unit(8);
-      }
-    }
-  }
-}
-
 ::-webkit-scrollbar {
   width: 16px;
 }
@@ -73,4 +38,10 @@ table {
 
 ::-webkit-scrollbar-track {
   background: transparent;
+}
+
+.appInsightsWrapper {
+  width: 100%;
+  height: 100%;
+  flex: 1;
 }

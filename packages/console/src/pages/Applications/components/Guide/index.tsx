@@ -4,9 +4,11 @@ import type { Optional } from '@silverhand/essentials';
 import i18next from 'i18next';
 import type { MDXProps } from 'mdx/types';
 import type { LazyExoticComponent } from 'react';
-import { cloneElement, lazy, Suspense, useEffect, useState } from 'react';
+import { useEffect, useContext, cloneElement, lazy, Suspense, useState } from 'react';
 
 import CodeEditor from '@/components/CodeEditor';
+import TextLink from '@/components/TextLink';
+import { AppEndpointsContext } from '@/contexts/AppEndpointsProvider';
 import DetailsSummary from '@/mdx-components/DetailsSummary';
 import type { SupportedSdk } from '@/types/applications';
 import { applicationTypeAndSdkTypeMappings } from '@/types/applications';
@@ -17,7 +19,7 @@ import StepsSkeleton from '../StepsSkeleton';
 import * as styles from './index.module.scss';
 
 type Props = {
-  app: Application;
+  app?: Application;
   isCompact?: boolean;
   onClose: () => void;
 };
@@ -30,7 +32,7 @@ const Guides: Record<string, LazyExoticComponent<(props: MDXProps) => JSX.Elemen
   vanilla: lazy(async () => import('@/assets/docs/tutorial/integrate-sdk/vanilla.mdx')),
   express: lazy(async () => import('@/assets/docs/tutorial/integrate-sdk/express.mdx')),
   next: lazy(async () => import('@/assets/docs/tutorial/integrate-sdk/next.mdx')),
-  'go web': lazy(async () => import('@/assets/docs/tutorial/integrate-sdk/go-web.mdx')),
+  go: lazy(async () => import('@/assets/docs/tutorial/integrate-sdk/go.mdx')),
   'ios_zh-cn': lazy(async () => import('@/assets/docs/tutorial/integrate-sdk/ios_zh-cn.mdx')),
   'android_zh-cn': lazy(
     async () => import('@/assets/docs/tutorial/integrate-sdk/android_zh-cn.mdx')
@@ -44,26 +46,26 @@ const Guides: Record<string, LazyExoticComponent<(props: MDXProps) => JSX.Elemen
     async () => import('@/assets/docs/tutorial/integrate-sdk/express_zh-cn.mdx')
   ),
   'next_zh-cn': lazy(async () => import('@/assets/docs/tutorial/integrate-sdk/next_zh-cn.mdx')),
-  'go web_zh-cn': lazy(async () => import('@/assets/docs/tutorial/integrate-sdk/go-web_zh-cn.mdx')),
+  'go_zh-cn': lazy(async () => import('@/assets/docs/tutorial/integrate-sdk/go_zh-cn.mdx')),
 };
 
-const Guide = ({ app, isCompact, onClose }: Props) => {
-  const { id: appId, secret: appSecret, name: appName, type: appType, oidcClientMetadata } = app;
-  const sdks = applicationTypeAndSdkTypeMappings[appType];
-  const [selectedSdk, setSelectedSdk] = useState<Optional<SupportedSdk>>(sdks[0]);
+function Guide({ app, isCompact, onClose }: Props) {
+  const sdks = app && applicationTypeAndSdkTypeMappings[app.type];
+  const [selectedSdk, setSelectedSdk] = useState<Optional<SupportedSdk>>();
   const [activeStepIndex, setActiveStepIndex] = useState(-1);
+  const { userEndpoint } = useContext(AppEndpointsContext);
 
-  // Directly close guide if no SDK available
   useEffect(() => {
-    if (!selectedSdk) {
-      onClose();
+    if (sdks?.length) {
+      setSelectedSdk(sdks[0]);
     }
-  }, [onClose, selectedSdk]);
+  }, [sdks]);
 
-  if (!selectedSdk) {
+  if (!app || !sdks || !selectedSdk) {
     return null;
   }
 
+  const { id: appId, secret: appSecret, name: appName, oidcClientMetadata } = app;
   const locale = i18next.language;
   const guideI18nKey = `${selectedSdk}_${locale}`.toLowerCase();
   const GuideComponent = Guides[guideI18nKey] ?? Guides[selectedSdk.toLowerCase()];
@@ -97,9 +99,9 @@ const Guide = ({ app, isCompact, onClose }: Props) => {
               );
             },
             a: ({ children, ...props }) => (
-              <a {...props} target="_blank" rel="noopener noreferrer">
+              <TextLink {...props} target="_blank" rel="noopener noreferrer">
                 {children}
-              </a>
+              </TextLink>
             ),
             details: DetailsSummary,
           }}
@@ -109,7 +111,7 @@ const Guide = ({ app, isCompact, onClose }: Props) => {
               <GuideComponent
                 appId={appId}
                 appSecret={appSecret}
-                endpoint={window.location.origin}
+                endpoint={userEndpoint}
                 redirectUris={oidcClientMetadata.redirectUris}
                 postLogoutRedirectUris={oidcClientMetadata.postLogoutRedirectUris}
                 activeStepIndex={activeStepIndex}
@@ -125,6 +127,6 @@ const Guide = ({ app, isCompact, onClose }: Props) => {
       </div>
     </div>
   );
-};
+}
 
 export default Guide;

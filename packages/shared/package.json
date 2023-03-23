@@ -1,6 +1,6 @@
 {
   "name": "@logto/shared",
-  "version": "1.0.0-beta.14",
+  "version": "1.0.2",
   "main": "lib/index.js",
   "author": "Silverhand Inc. <contact@silverhand.io>",
   "license": "MPL-2.0",
@@ -8,33 +8,46 @@
   "files": [
     "lib"
   ],
+  "exports": {
+    ".": {
+      "import": "./lib/index.js"
+    },
+    "./esm": {
+      "import": "./lib/esm/index.js"
+    },
+    "./app-insights": {
+      "import": "./lib/app-insights/index.js"
+    }
+  },
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
     "precommit": "lint-staged",
     "build": "rm -rf lib/ && tsc -p tsconfig.build.json",
+    "build:test": "rm -rf lib/ && tsc -p tsconfig.test.json --sourcemap",
     "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput --incremental",
     "lint": "eslint --ext .ts src",
     "lint:report": "pnpm lint --format json --output-file report.json",
     "prepack": "pnpm build",
-    "test": "jest",
-    "test:ci": "jest"
+    "test:only": "NODE_OPTIONS=--experimental-vm-modules jest",
+    "test": "pnpm build:test && pnpm test:only",
+    "test:ci": "pnpm test:only"
   },
   "devDependencies": {
-    "@silverhand/eslint-config": "1.3.0",
-    "@silverhand/jest-config": "1.2.2",
-    "@silverhand/ts-config": "1.2.1",
-    "@types/jest": "^29.1.2",
-    "@types/node": "^16.0.0",
-    "eslint": "^8.21.0",
-    "jest": "^29.1.2",
+    "@logto/connector-kit": "workspace:^",
+    "@silverhand/eslint-config": "2.0.1",
+    "@silverhand/ts-config": "2.0.3",
+    "@types/jest": "^29.4.0",
+    "@types/node": "^18.11.18",
+    "eslint": "^8.34.0",
+    "jest": "^29.5.0",
     "lint-staged": "^13.0.0",
-    "prettier": "^2.7.1",
-    "typescript": "^4.7.4"
+    "prettier": "^2.8.2",
+    "typescript": "^5.0.0"
   },
   "engines": {
-    "node": "^16.13.0 || ^18.12.0"
+    "node": "^18.12.0"
   },
   "eslintConfig": {
     "extends": "@silverhand",
@@ -44,10 +57,15 @@
   },
   "prettier": "@silverhand/eslint-config/.prettierrc",
   "dependencies": {
+    "@logto/core-kit": "workspace:^",
     "@logto/schemas": "workspace:^",
-    "@silverhand/essentials": "^1.3.0",
-    "find-up": "^5.0.0",
-    "nanoid": "^3.3.4",
+    "@silverhand/essentials": "^2.5.0",
+    "chalk": "^5.0.0",
+    "find-up": "^6.3.0",
+    "nanoid": "^4.0.0",
     "slonik": "^30.0.0"
+  },
+  "optionalDependencies": {
+    "applicationinsights": "^2.5.0"
   }
 }

@@ -1,10 +1,13 @@
+import { Theme } from '@logto/schemas';
+import { useContext } from 'react';
 import type { TFuncKey } from 'react-i18next';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 
-import ErrorImage from '@/assets/icons/error.svg';
-import Button from '@/components/Button';
+import StaticPageLayout from '@/Layout/StaticPageLayout';
+import EmptyStateDark from '@/assets/icons/empty-state-dark.svg';
+import EmptyState from '@/assets/icons/empty-state.svg';
 import NavBar from '@/components/NavBar';
+import { PageContext } from '@/hooks/use-page-context';
 
 import * as styles from './index.module.scss';
 
@@ -16,26 +19,20 @@ type Props = {
 
 const ErrorPage = ({ title = 'description.not_found', message, rawMessage }: Props) => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+
+  const { theme } = useContext(PageContext);
 
   const errorMessage = rawMessage ?? (message && t(message));
 
   return (
-    <div className={styles.wrapper}>
-      <NavBar />
+    <StaticPageLayout>
+      {history.length > 1 && <NavBar />}
       <div className={styles.container}>
-        <ErrorImage />
+        {theme === Theme.Light ? <EmptyState /> : <EmptyStateDark />}
         <div className={styles.title}>{t(title)}</div>
         {errorMessage && <div className={styles.message}>{String(errorMessage)}</div>}
       </div>
-      <Button
-        className={styles.backButton}
-        title="action.back"
-        onClick={() => {
-          navigate(-1);
-        }}
-      />
-    </div>
+    </StaticPageLayout>
   );
 };
 

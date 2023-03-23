@@ -3,12 +3,22 @@ import { convertToIdentifiers } from '@logto/shared';
 import { createMockPool, createMockQueryResult, sql } from 'slonik';
 
 import { mockConnector } from '#src/__mocks__/index.js';
-import envSet from '#src/env-set/index.js';
 import { DeletionError } from '#src/errors/SlonikError/index.js';
 import type { QueryType } from '#src/utils/test-utils.js';
 import { expectSqlAssert } from '#src/utils/test-utils.js';
 
-import {
+const { jest } = import.meta;
+
+const mockQuery: jest.MockedFunction<QueryType> = jest.fn();
+
+const pool = createMockPool({
+  query: async (sql, values) => {
+    return mockQuery(sql, values);
+  },
+});
+
+const { createConnectorQueries } = await import('./connector.js');
+const {
   findAllConnectors,
   findConnectorById,
   countConnectorByConnectorId,
@@ -16,17 +26,7 @@ import {
   deleteConnectorByIds,
   insertConnector,
   updateConnector,
-} from './connector.js';
-
-const mockQuery: jest.MockedFunction<QueryType> = jest.fn();
-
-jest.spyOn(envSet, 'pool', 'get').mockReturnValue(
-  createMockPool({
-    query: async (sql, values) => {
-      return mockQuery(sql, values);
-    },
-  })
-);
+} = createConnectorQueries(pool);
 
 describe('connector queries', () => {
   const { table, fields } = convertToIdentifiers(Connectors);
@@ -36,7 +36,7 @@ describe('connector queries', () => {
     const expectSql = sql`
       select ${sql.join(Object.values(fields), sql`, `)}
       from ${table}
-      order by ${fields.enabled} desc, ${fields.id} asc
+      order by ${fields.id} asc
     `;
 
     mockQuery.mockImplementationOnce(async (sql, values) => {
@@ -172,8 +172,8 @@ describe('connector queries', () => {
     };
 
     const expectSql = `
-      insert into "connectors" ("id", "enabled", "sync_profile", "connector_id", "config", "metadata")
-      values ($1, $2, $3, $4, $5, $6)
+      insert into "connectors" ("id", "sync_profile", "connector_id", "config", "metadata")
+      values ($1, $2, $3, $4, $5)
       returning *
     `;
 
@@ -182,7 +182,6 @@ describe('connector queries', () => {
 
       expect(values).toEqual([
         connector.id,
-        connector.enabled,
         connector.syncProfile,
         connector.connectorId,
         connector.config,
@@ -192,32 +191,33 @@ describe('connector queries', () => {
       return createMockQueryResult([connector]);
     });
 
-    await expect(insertConnector(mockConnector)).resolves.toEqual(connector);
+    const { tenantId, ...data } = mockConnector;
+    await expect(insertConnector(data)).resolves.toEqual(connector);
   });
 
   it('updateConnector (with id)', async () => {
     const id = 'foo';
-    const enabled = false;
+    const syncProfile = false;
 
     const expectSql = sql`
       update ${table}
-      set ${fields.enabled}=$1
+      set ${fields.syncProfile}=$1
       where ${fields.id}=$2
       returning *
     `;
 
     mockQuery.mockImplementationOnce(async (sql, values) => {
       expectSqlAssert(sql, expectSql.sql);
-      expect(values).toEqual([enabled, id]);
+      expect(values).toEqual([syncProfile, id]);
 
-      return createMockQueryResult([{ id, enabled }]);
+      return createMockQueryResult([{ id, syncProfile }]);
     });
 
     await expect(
-      updateConnector({ where: { id }, set: { enabled }, jsonbMode: 'merge' })
+      updateConnector({ where: { id }, set: { syncProfile }, jsonbMode: 'merge' })
     ).resolves.toEqual({
       id,
-      enabled,
+      syncProfile,
     });
   });
 });

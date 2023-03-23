@@ -8,8 +8,6 @@
       "#src/*": [
         "src/*"
       ]
-    },
-    "moduleResolution": "nodenext",
-    "module": "es2022"
+    }
   }
 }

@@ -7,10 +7,9 @@ const translation = {
     email: 'E-posta Adresi',
     phone_number: 'Telefon Numarası',
     confirm_password: 'Şifreyi Doğrula',
+    search_region_code: 'Bölge kodunu ara',
   },
   secondary: {
-    sign_in_with: '{{methods, list(type: disjunction;)}} ile giriş yapınız',
-    register_with: 'Create account with {{methods, list(type: disjunction;)}}', // UNTRANSLATED
     social_bind_with:
       'Hesabınız zaten var mı? {{methods, list(type: disjunction;)}} bağlantısına tıklayarak giriş yapabilirsiniz',
   },
@@ -18,86 +17,111 @@ const translation = {
     sign_in: 'Giriş Yap',
     continue: 'İlerle',
     create_account: 'Hesap Oluştur',
+    create_account_without_linking: 'Bağlamadan hesap oluştur',
     create: 'Oluştur',
-    enter_passcode: 'Kodu Gir',
+    enter_passcode: 'Doğrulama kodunu girin',
     confirm: 'Onayla',
     cancel: 'İptal Et',
-    save_password: 'Save', // UNTRANSLATED
+    save_password: 'Şifreyi kaydet',
     bind: '{{address}} ile birleştir',
+    bind_and_continue: 'Bağla ve devam et',
     back: 'Geri Dön',
     nav_back: 'Geri',
     agree: 'Kabul Et',
     got_it: 'Anladım',
     sign_in_with: '{{name}} ile ilerle',
     forgot_password: 'Şifremi Unuttum?',
-    switch_to: 'Switch to {{method}}', // UNTRANSLATED
-    sign_in_via_passcode: 'Sign in with verification code', // UNTRANSLATED
-    sign_in_via_password: 'Sign in with password', // UNTRANSLATED
+    switch_to: '{{method}} yöntemine geç',
+    sign_in_via_passcode: 'Doğrulama koduyla oturum açın',
+    sign_in_via_password: 'şifre ile giriş yap',
+    change: '{{method}} değiştir',
+    link_another_email: 'Başka bir e-postayı bağla',
+    link_another_phone: 'Başka bir telefon bağla',
+    link_another_email_or_phone: 'Başka bir e-posta veya telefon bağlayın',
+    show_password: 'Şifreyi göster',
   },
   description: {
     email: 'e-posta adresi',
     phone_number: 'telefon numarası',
+    username: 'kullanıcı Adı',
     reminder: 'Hatırlatıcı',
     not_found: '404 Bulunamadı',
     agree_with_terms: 'Okudum ve anladım',
-    agree_with_terms_modal: 'Devam etmek için lütfen <link></link>i kabul edin.',
+    agree_with_terms_modal: "Devam etmek için lütfen <link></link>'i kabul edin.",
     terms_of_use: 'Kullanım Koşulları',
+    sign_in: 'Giriş Yap',
+    privacy_policy: 'Gizlilik Politikası',
     create_account: 'Hesap Oluştur',
     or: 'veya',
-    enter_passcode: 'Kod {{address}} {{target}} inize gönderildi.',
-    passcode_sent: 'Kodunuz yeniden gönderildi.',
+    and: 've',
+    enter_passcode: 'Doğrulama kodu {{address}} {{target}} adresinize gönderildi',
+    passcode_sent: 'Doğrulama kodu yeniden gönderildi',
     resend_after_seconds: '<span>{{seconds}}</span> saniye sonra tekrar gönder',
-    resend_passcode: 'Kodu Yeniden Gönder',
-    continue_with: 'İle devam et',
+    resend_passcode: 'Doğrulama kodunu tekrar gönder',
     create_account_id_exists: '{{type}} {{value}} ile hesap mevcut, giriş yapmak ister misiniz?',
-    sign_in_id_does_not_exists:
+    link_account_id_exists: '{{type}} {{value}} olan hesap zaten var, bağlamak ister misiniz?',
+    sign_in_id_does_not_exist:
       '{{type}} {{value}} ile hesap mevcut değil, yeni bir hesap oluşturmak ister misiniz?',
-    sign_in_id_does_not_exists_alert: 'The account with {{type}} {{value}} does not exist.', // UNTRANSLATED
-    create_account_id_exists_alert: 'The account with {{type}} {{value}} already exists', // UNTRANSLATED
-    bind_account_title: 'Hesap bağla',
-    social_create_account: 'Hesabınız yok mu? Yeni bir hesap ve bağlantı oluşturabilirsiniz.',
-    social_bind_account: 'Hesabınız zaten var mı? Hesabınıza bağlanmak için giriş yapınız.',
-    social_bind_with_existing: 'İlgili bir hesap bulduk, hemen bağlayabilirsiniz.',
-    reset_password: 'Şifre yenile',
-    reset_password_description_email:
-      'Hesabınızla ilişkili e-posta adresini girin, şifrenizi sıfırlamak için size doğrulama kodunu e-posta ile gönderelim.',
-    reset_password_description_sms:
-      'Hesabınızla ilişkili telefon numarasını girin, şifrenizi sıfırlamak için size doğrulama kodunu kısa mesajla gönderelim.',
+    sign_in_id_does_not_exist_alert: '{{type}} {{value}} olan hesap mevcut değil.',
+    create_account_id_exists_alert:
+      '{{type}} {{value}} olan hesap başka bir hesaba bağlı. Lütfen başka bir {{type}} deneyin.',
+    social_identity_exist:
+      '{{type}} {{value}} başka bir hesaba bağlı. Lütfen başka bir {{type}} deneyin.',
+    bind_account_title: 'Bağla veya hesap oluştur',
+    social_create_account: 'Yeni bir hesap oluşturabilirsiniz.',
+    social_link_email: 'Başka bir e-posta bağlayabilirsiniz',
+    social_link_phone: 'Başka bir telefon bağlayabilirsiniz',
+    social_link_email_or_phone: 'Başka bir e-posta veya telefon bağlayabilirsiniz',
+    social_bind_with_existing: 'Kayıtlı ilgili bir hesap bulduk ve onu doğrudan bağlayabilirsiniz.',
+    reset_password: 'Parolanızı mı unuttunuz',
+    reset_password_description:
+      'Hesabınızla ilişkili {{types, list(type: disjunction;)}} girin, şifrenizi sıfırlamanız için size doğrulama kodunu göndereceğiz.',
     new_password: 'Yeni Şifre',
-    set_password: 'Set password', // UNTRANSLATED
-    password_changed: 'Password Changed', // UNTRANSLATED
-    no_account: 'No account yet? ', // UNTRANSLATED
-    have_account: 'Already had an account?', // UNTRANSLATED
-    enter_password: 'Enter Password', // UNTRANSLATED
-    enter_password_for: 'Sign in with the password to {{method}} {{value}}', // UNTRANSLATED
-    enter_username: 'Enter username', // UNTRANSLATED
+    set_password: 'Şifreyi belirle',
+    password_changed: 'Şifre değişti',
+    no_account: 'Henüz hesap yok mu?',
+    have_account: 'Zaten bir hesabınız var mıydı?',
+    enter_password: 'Parolanı Gir',
+    enter_password_for: '{{method}} {{value}} şifresiyle oturum açın',
+    enter_username: 'Kullanıcı adını ayarla',
     enter_username_description:
-      'Username is an alternative for sign-in. Username must contain only letters, numbers, and underscores.', // UNTRANSLATED
-    link_email: 'Link email', // UNTRANSLATED
-    link_phone: 'Link phone', // UNTRANSLATED
-    link_email_or_phone: 'Link email or phone', // UNTRANSLATED
-    link_email_description: 'For added security, please link your email with the account.', // UNTRANSLATED
-    link_phone_description: 'For added security, please link your phone with the account.', // UNTRANSLATED
+      'Kullanıcı adı, oturum açmak için bir alternatiftir. Kullanıcı adı yalnızca harf, sayı ve alt çizgi içermelidir.',
+    link_email: 'E-postayı bağla',
+    link_phone: 'Telefonu bağla',
+    link_email_or_phone: 'E-posta veya telefon bağlantısı',
+    link_email_description: 'Daha fazla güvenlik için lütfen e-postanızı hesapla ilişkilendirin.',
+    link_phone_description: 'Daha fazla güvenlik için lütfen telefonunuzu hesaba bağlayın.',
     link_email_or_phone_description:
-      'For added security, please link your email or phone with the account.', // UNTRANSLATED
-    continue_with_more_information: 'For added security, please complete below account details.', // UNTRANSLATED
+      'Daha fazla güvenlik için lütfen e-postanızı veya telefonunuzu hesaba bağlayın.',
+    continue_with_more_information:
+      'Daha fazla güvenlik için lütfen aşağıdaki hesap ayrıntılarını tamamlayın.',
+    create_your_account: 'Hesabını oluştur',
+    sign_in_to_your_account: 'Hesabına giriş yap',
+    no_region_code_found: 'Bölge kodu bulunamadı',
   },
   error: {
-    username_password_mismatch: 'Kullanıcı adı ve şifre eşleşmiyor.',
+    general_required: `{{types, list(type: disjunction;)}} gerekli`,
+    general_invalid: `{{types, list(type: disjunction;)}} geçersiz`,
     username_required: 'Kullanıcı adı gerekli.',
     password_required: 'Şifre gerekli.',
     username_exists: 'Kullanıcı adı mevcut.',
     username_should_not_start_with_number: 'Kullanıcı adı sayı ile başlayamaz.',
-    username_valid_charset: 'Kullanıcı adı yalnızca harf,sayı veya alt çizgi içermeli.',
+    username_invalid_charset: 'Kullanıcı adı yalnızca harf,sayı veya alt çizgi içermeli.',
     invalid_email: 'E-posta adresi geçersiz',
     invalid_phone: 'Telefon numarası geçersiz',
     password_min_length: 'Şifre en az {{min}} karakterden oluşmalıdır',
     passwords_do_not_match: 'Şifreler eşleşmiyor',
-    invalid_passcode: 'Kod geçersiz',
+    invalid_password:
+      'Şifre en az {{min}} karakter gerektirir ve harf, sayı ve sembol karışımı içerir.',
+    invalid_passcode: 'Doğrulama kodu geçersiz',
     invalid_connector_auth: 'Yetki geçersiz',
     invalid_connector_request: 'Bağlayıcı veri geçersiz',
     unknown: 'Bilinmeyen hata. Lütfen daha sonra tekrar deneyiniz.',
     invalid_session: 'Oturum bulunamadı. Lütfen geri dönüp tekrar giriş yapınız.',
+    timeout: 'Oturum zaman aşımına uğradı. Lütfen geri dönüp tekrar giriş yapınız.',
+  },
+  demo_app: {
+    notification: 'İpucu: Oturum açma deneyimini test etmek için önce bir hesap oluşturun.',
   },
 };
 

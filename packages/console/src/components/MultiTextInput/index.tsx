@@ -5,6 +5,7 @@ import type { KeyboardEvent } from 'react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import CirclePlus from '@/assets/images/circle-plus.svg';
 import Minus from '@/assets/images/minus.svg';
 
 import Button from '../Button';
@@ -24,7 +25,7 @@ export type Props = {
   className?: string;
 };
 
-const MultiTextInput = ({
+function MultiTextInput({
   title,
   value,
   onChange,
@@ -32,7 +33,7 @@ const MultiTextInput = ({
   error,
   placeholder,
   className,
-}: Props) => {
+}: Props) {
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
 
   const [deleteFieldIndex, setDeleteFieldIndex] = useState<number>();
@@ -106,6 +107,7 @@ const MultiTextInput = ({
         type="text"
         title="general.add_another"
         className={styles.addAnother}
+        icon={<CirclePlus />}
         onClick={handleAdd}
       />
       <ConfirmModal
@@ -125,6 +127,6 @@ const MultiTextInput = ({
       </ConfirmModal>
     </div>
   );
-};
+}
 
 export default MultiTextInput;

@@ -2,6 +2,7 @@ const general = {
   placeholder: 'Placeholder',
   skip: 'Geç',
   next: 'Sonraki',
+  back: 'Back', // UNTRANSLATED
   retry: 'Tekrar Deneyin',
   done: 'Bitti',
   search: 'Ara',
@@ -30,7 +31,7 @@ const general = {
   copying: 'Kopyalanıyor',
   copied: 'Kopyalandı',
   required: 'Gerekli',
-  add_another: '+ Bir tane daha ekle',
+  add_another: 'Bir tane daha ekle',
   deletion_confirmation: 'Bu dosyayı silmek istediğinize emin misiniz: {{title}}?',
   settings_nav: 'Ayarlar',
   unsaved_changes_warning:
@@ -38,10 +39,18 @@ const general = {
   leave_page: 'Sayfayı terk et',
   stay_on_page: 'Bu sayfada kal',
   type_to_search: 'Type to search', // UNTRANSLATED
-  got_it: 'Got it', // UNTRANSLATED
+  got_it: 'Anladım',
+  continue: 'Continue', // UNTRANSLATED
   page_info: '{{min, number}}-{{max, number}} of {{total, number}}', // UNTRANSLATED
   learn_more: 'Learn more', // UNTRANSLATED
   tab_errors: '{{count, number}} errors', // UNTRANSLATED
+  skip_for_now: 'Skip for now', // UNTRANSLATED
+  remove: 'Remove', // UNTRANSLATED
+  visit: 'Visit', // UNTRANSLATED
+  join: 'Join', // UNTRANSLATED
+  try_now: 'Try Now', // UNTRANSLATED
+  multiple_form_field: '(Multiple)', // UNTRANSLATED
+  demo: 'Demo', // UNTRANSLATED
 };
 
 export default general;

@@ -1,66 +1,110 @@
-import type { PasscodeType, Passcode, CreatePasscode } from '@logto/schemas';
+import type { VerificationCodeType } from '@logto/connector-kit';
+import type { Passcode, RequestVerificationCodePayload } from '@logto/schemas';
 import { Passcodes } from '@logto/schemas';
-import { convertToIdentifiers } from '@logto/shared';
+import { conditionalSql, convertToIdentifiers } from '@logto/shared';
+import type { CommonQueryMethods } from 'slonik';
 import { sql } from 'slonik';
 
-import { buildInsertInto } from '#src/database/insert-into.js';
-import envSet from '#src/env-set/index.js';
+import { buildInsertIntoWithPool } from '#src/database/insert-into.js';
 import { DeletionError } from '#src/errors/SlonikError/index.js';
 
 const { table, fields } = convertToIdentifiers(Passcodes);
 
-export const findUnconsumedPasscodeByJtiAndType = async (jti: string, type: PasscodeType) =>
-  envSet.pool.maybeOne<Passcode>(sql`
-    select ${sql.join(Object.values(fields), sql`, `)}
-    from ${table}
-    where ${fields.interactionJti}=${jti} and ${fields.type}=${type} and ${fields.consumed} = false
-  `);
+type FindByIdentifierAndTypeProperties = {
+  type: VerificationCodeType;
+} & RequestVerificationCodePayload;
 
-export const findUnconsumedPasscodesByJtiAndType = async (jti: string, type: PasscodeType) =>
-  envSet.pool.any<Passcode>(sql`
-    select ${sql.join(Object.values(fields), sql`, `)}
-    from ${table}
-    where ${fields.interactionJti}=${jti} and ${fields.type}=${type} and ${fields.consumed} = false
-  `);
+const buildSqlForFindByJtiAndType = (jti: string, type: VerificationCodeType) => sql`
+  select ${sql.join(Object.values(fields), sql`, `)}
+  from ${table}
+  where ${fields.interactionJti}=${jti} and ${fields.type}=${type} and ${fields.consumed} = false
+`;
 
-export const insertPasscode = buildInsertInto<CreatePasscode, Passcode>(Passcodes, {
-  returning: true,
-});
+// Identifier requires either a valid email address or phone number
+const buildSqlForFindByIdentifierAndType = ({
+  type,
+  ...identifier
+}: FindByIdentifierAndTypeProperties) => sql`
+  select ${sql.join(Object.values(fields), sql`, `)}
+  from ${table}
+  where 
+    ${conditionalSql(
+      'email' in identifier && identifier.email,
+      (email) => sql`${fields.email}=${email}`
+    )}
+    ${conditionalSql(
+      'phone' in identifier && identifier.phone,
+      (phone) => sql`${fields.phone}=${phone}`
+    )}
+    and ${fields.type}=${type} and ${fields.consumed} = false
+`;
 
-export const consumePasscode = async (id: string) =>
-  envSet.pool.query<Passcode>(sql`
-    update ${table}
-    set ${fields.consumed}=true
-    where ${fields.id}=${id}
-    returning ${sql.join(Object.values(fields), sql`, `)}
-  `);
+export const createPasscodeQueries = (pool: CommonQueryMethods) => {
+  const findUnconsumedPasscodeByJtiAndType = async (jti: string, type: VerificationCodeType) =>
+    pool.maybeOne<Passcode>(buildSqlForFindByJtiAndType(jti, type));
 
-export const increasePasscodeTryCount = async (id: string) =>
-  envSet.pool.query<Passcode>(sql`
-    update ${table}
-    set ${fields.tryCount}=${fields.tryCount}+1
-    where ${fields.id}=${id}
-    returning ${sql.join(Object.values(fields), sql`, `)}
-  `);
+  const findUnconsumedPasscodesByJtiAndType = async (jti: string, type: VerificationCodeType) =>
+    pool.any<Passcode>(buildSqlForFindByJtiAndType(jti, type));
 
-export const deletePasscodeById = async (id: string) => {
-  const { rowCount } = await envSet.pool.query(sql`
-    delete from ${table}
-    where ${fields.id}=${id}
-  `);
+  const findUnconsumedPasscodeByIdentifierAndType = async (
+    properties: FindByIdentifierAndTypeProperties
+  ) => pool.maybeOne<Passcode>(buildSqlForFindByIdentifierAndType(properties));
 
-  if (rowCount < 1) {
-    throw new DeletionError(Passcodes.table, id);
-  }
-};
+  const findUnconsumedPasscodesByIdentifierAndType = async (
+    properties: FindByIdentifierAndTypeProperties
+  ) => pool.any<Passcode>(buildSqlForFindByIdentifierAndType(properties));
 
-export const deletePasscodesByIds = async (ids: string[]) => {
-  const { rowCount } = await envSet.pool.query(sql`
-    delete from ${table}
-    where ${fields.id} in (${sql.join(ids, sql`,`)})
-  `);
+  const insertPasscode = buildInsertIntoWithPool(pool)(Passcodes, {
+    returning: true,
+  });
 
-  if (rowCount !== ids.length) {
-    throw new DeletionError(Passcodes.table, `${ids.join(',')}`);
-  }
+  const consumePasscode = async (id: string) =>
+    pool.query<Passcode>(sql`
+      update ${table}
+      set ${fields.consumed}=true
+      where ${fields.id}=${id}
+      returning ${sql.join(Object.values(fields), sql`, `)}
+    `);
+
+  const increasePasscodeTryCount = async (id: string) =>
+    pool.query<Passcode>(sql`
+      update ${table}
+      set ${fields.tryCount}=${fields.tryCount}+1
+      where ${fields.id}=${id}
+      returning ${sql.join(Object.values(fields), sql`, `)}
+    `);
+
+  const deletePasscodeById = async (id: string) => {
+    const { rowCount } = await pool.query(sql`
+      delete from ${table}
+      where ${fields.id}=${id}
+    `);
+
+    if (rowCount < 1) {
+      throw new DeletionError(Passcodes.table, id);
+    }
+  };
+
+  const deletePasscodesByIds = async (ids: string[]) => {
+    const { rowCount } = await pool.query(sql`
+      delete from ${table}
+      where ${fields.id} in (${sql.join(ids, sql`,`)})
+    `);
+
+    if (rowCount !== ids.length) {
+      throw new DeletionError(Passcodes.table, `${ids.join(',')}`);
+    }
+  };
+
+  return {
+    findUnconsumedPasscodeByJtiAndType,
+    findUnconsumedPasscodesByJtiAndType,
+    findUnconsumedPasscodeByIdentifierAndType,
+    findUnconsumedPasscodesByIdentifierAndType,
+    insertPasscode,
+    consumePasscode,
+    increasePasscodeTryCount,
+    deletePasscodeById,
+    deletePasscodesByIds,
+  };
 };

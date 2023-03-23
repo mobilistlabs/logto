@@ -14,10 +14,12 @@ const user_details = {
     congratulations: '해당 사용자의 비밀번호가 성공적으로 초기화 되었어요.',
     new_password: '새로운 비밀번호:',
   },
+  tab_settings: '설정',
+  tab_roles: '역할',
   tab_logs: '사용자 기록',
-  settings: 'Settings', // UNTRANSLATED
+  settings: '설정',
   settings_description:
-    'Each user has a profile containing all user information. It consists of basic data, social identities, and custom data.', // UNTRANSLATED
+    '각 사용자는 모든 사용자 정보를 포함하는 프로파일을 가지고 있어요. 프로파일은 기본 데이터, 소셜 ID, 사용자 정의 데이터로 구성되어 있어요.',
   field_email: '메인 이메일',
   field_phone: '메인 휴대전화번호',
   field_username: '사용자 이름',
@@ -36,7 +38,25 @@ const user_details = {
     not_connected: '이 사용자는 아직 소셜에 연동되지 않았아요.',
     deletion_confirmation: '<name/> 신원을 삭제하려고 해요. 정말로 진행할까요?',
   },
-  suspended: 'Suspended', // UNTRANSLATED
+  suspended: '정지됨',
+  roles: {
+    name_column: '역할',
+    description_column: '설명',
+    assign_button: '역할 할당',
+    delete_description:
+      '이 행동은 사용자에게서 이 역할을 삭제할 거예요. 역할은 그대로 존재하지만, 이 사용자에게 더 이상 할당되지 않아요.',
+    deleted: '{{name}}이/가 성공적으로 이 사용자에게서 제거되었어요!',
+    assign_title: '{{name}}에게 역할 할당',
+    assign_subtitle: '{{name}}에게 하나 이상의 역할을 할당하세요',
+    assign_role_field: '역할 할당',
+    role_search_placeholder: '역할 이름으로 검색',
+    added_text: '{{value, number}}이/가 추가되었어요',
+    assigned_user_count: '사용자 {{value, number}}명',
+    confirm_assign: '역할 할당',
+    role_assigned: '역할을 성공적으로 할당했어요',
+    search: '역할 이름, 설명, ID로 검색',
+    empty: '역할 없음',
+  },
 };
 
 export default user_details;

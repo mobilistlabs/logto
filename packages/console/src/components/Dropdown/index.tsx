@@ -1,12 +1,19 @@
 import classNames from 'classnames';
-import type { ReactNode, RefObject } from 'react';
+import type {
+  DetailedHTMLProps,
+  HTMLAttributes,
+  PropsWithChildren,
+  ReactNode,
+  RefObject,
+} from 'react';
 import { useRef } from 'react';
 import ReactModal from 'react-modal';
 
-import type { HorizontalAlignment } from '@/hooks/use-position';
 import usePosition from '@/hooks/use-position';
-import { onKeyDownHandler } from '@/utilities/a11y';
+import type { HorizontalAlignment } from '@/types/positioning';
+import { onKeyDownHandler } from '@/utils/a11y';
 
+import OverlayScrollbar from '../OverlayScrollbar';
 import * as styles from './index.module.scss';
 
 export { default as DropdownItem } from './DropdownItem';
@@ -21,9 +28,17 @@ type Props = {
   className?: string;
   titleClassName?: string;
   horizontalAlign?: HorizontalAlignment;
+  hasOverflowContent?: boolean;
 };
 
-const Dropdown = ({
+function Div({
+  children,
+  ...rest
+}: PropsWithChildren<DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>>) {
+  return <div {...rest}>{children}</div>;
+}
+
+function Dropdown({
   children,
   title,
   isOpen,
@@ -33,7 +48,8 @@ const Dropdown = ({
   className,
   titleClassName,
   horizontalAlign = 'end',
-}: Props) => {
+  hasOverflowContent,
+}: Props) {
   const overlayRef = useRef<HTMLDivElement>(null);
 
   const { position, positionState, mutate } = usePosition({
@@ -43,6 +59,8 @@ const Dropdown = ({
     anchorRef,
     overlayRef,
   });
+
+  const WrapperComponent = hasOverflowContent ? Div : OverlayScrollbar;
 
   return (
     <ReactModal
@@ -65,18 +83,18 @@ const Dropdown = ({
     >
       <div ref={overlayRef} className={styles.dropdownContainer}>
         {title && <div className={classNames(styles.title, titleClassName)}>{title}</div>}
-        <ul
-          className={classNames(styles.list, className)}
+        <WrapperComponent
+          className={className}
           role="menu"
           tabIndex={0}
           onClick={onClose}
           onKeyDown={onKeyDownHandler({ Enter: onClose, Esc: onClose })}
         >
           {children}
-        </ul>
+        </WrapperComponent>
       </div>
     </ReactModal>
   );
-};
+}
 
 export default Dropdown;

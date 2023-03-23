@@ -5,13 +5,13 @@ import { useRef, useState } from 'react';
 import Close from '@/assets/images/close.svg';
 import KeyboardArrowDown from '@/assets/images/keyboard-arrow-down.svg';
 import KeyboardArrowUp from '@/assets/images/keyboard-arrow-up.svg';
-import { onKeyDownHandler } from '@/utilities/a11y';
+import { onKeyDownHandler } from '@/utils/a11y';
 
 import Dropdown, { DropdownItem } from '../Dropdown';
 import IconButton from '../IconButton';
 import * as styles from './index.module.scss';
 
-type Option<T> = {
+export type Option<T> = {
   value: T;
   title: ReactNode;
 };
@@ -28,7 +28,7 @@ type Props<T> = {
   size?: 'small' | 'medium' | 'large';
 };
 
-const Select = <T extends string>({
+function Select<T extends string>({
   className,
   value,
   options,
@@ -38,7 +38,7 @@ const Select = <T extends string>({
   placeholder,
   isClearable,
   size = 'large',
-}: Props<T>) => {
+}: Props<T>) {
   const [isOpen, setIsOpen] = useState(false);
   const anchorRef = useRef<HTMLInputElement>(null);
   const current = options.find((option) => value && option.value === value);
@@ -80,7 +80,7 @@ const Select = <T extends string>({
           }
         }}
       >
-        {current?.title ?? placeholder}
+        <div className={styles.title}>{current?.title ?? placeholder}</div>
         {isClearable && (
           <IconButton
             className={classNames(styles.icon, styles.clear)}
@@ -97,6 +97,7 @@ const Select = <T extends string>({
       <Dropdown
         isFullWidth
         anchorRef={anchorRef}
+        className={styles.dropdown}
         isOpen={isOpen}
         onClose={() => {
           setIsOpen(false);
@@ -115,6 +116,6 @@ const Select = <T extends string>({
       </Dropdown>
     </>
   );
-};
+}
 
 export default Select;

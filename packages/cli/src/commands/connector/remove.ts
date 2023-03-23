@@ -1,8 +1,9 @@
+import fs from 'fs/promises';
+
 import chalk from 'chalk';
-import fsExtra from 'fs-extra';
 import type { CommandModule } from 'yargs';
 
-import { log } from '../../utilities.js';
+import { log } from '../../utils.js';
 import { getConnectorPackagesFrom } from './utils.js';
 
 const remove: CommandModule<{ path?: string }, { path?: string; packages?: string[] }> = {
@@ -39,7 +40,7 @@ const remove: CommandModule<{ path?: string }, { path?: string; packages?: strin
         const packageInfo = existingPackages.find(({ name }) => name === current);
 
         try {
-          await fsExtra.remove(packageInfo?.path ?? '');
+          await fs.rm(packageInfo?.path ?? '', { force: true, recursive: true });
 
           return okSymbol;
         } catch (error: unknown) {

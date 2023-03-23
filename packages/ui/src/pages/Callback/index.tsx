@@ -1,17 +1,18 @@
 import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 
+import StaticPageLayout from '@/Layout/StaticPageLayout';
 import SocialLanding from '@/containers/SocialLanding';
 import useSocialCallbackHandler from '@/hooks/use-social-callback-handler';
 
 import * as styles from './index.module.scss';
 
 type Parameters = {
-  connector: string;
+  connectorId: string;
 };
 
 const Callback = () => {
-  const { connector: connectorId } = useParams<Parameters>();
+  const { connectorId } = useParams<Parameters>();
 
   const { socialCallbackHandler } = useSocialCallbackHandler();
 
@@ -28,9 +29,9 @@ const Callback = () => {
   }
 
   return (
-    <div className={styles.wrapper}>
+    <StaticPageLayout>
       <SocialLanding isLoading className={styles.connectorContainer} connectorId={connectorId} />
-    </div>
+    </StaticPageLayout>
   );
 };
 

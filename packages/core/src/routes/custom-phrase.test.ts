@@ -1,11 +1,19 @@
 import en from '@logto/phrases-ui/lib/locales/en.js';
-import type { CustomPhrase, SignInExperience, Translation } from '@logto/schemas';
+import { CustomPhrase } from '@logto/schemas';
+import type { SignInExperience } from '@logto/schemas';
+import { pickDefault, createMockUtils } from '@logto/shared/esm';
 
 import { mockZhCnCustomPhrase, trTrTag, zhCnTag } from '#src/__mocks__/custom-phrase.js';
 import { mockSignInExperience } from '#src/__mocks__/index.js';
 import RequestError from '#src/errors/RequestError/index.js';
-import customPhraseRoutes from '#src/routes/custom-phrase.js';
+import { mockId, mockStandardId } from '#src/test-utils/nanoid.js';
+import { MockTenant } from '#src/test-utils/tenant.js';
 import { createRequester } from '#src/utils/test-utils.js';
+
+const { jest } = import.meta;
+const { mockEsm } = createMockUtils(jest);
+
+await mockStandardId();
 
 const mockLanguageTag = zhCnTag;
 const mockPhrase = mockZhCnCustomPhrase;
@@ -13,61 +21,55 @@ const mockCustomPhrases: Record<string, CustomPhrase> = {
   [mockLanguageTag]: mockPhrase,
 };
 
-const deleteCustomPhraseByLanguageTag = jest.fn(async (languageTag: string) => {
-  if (!mockCustomPhrases[languageTag]) {
-    throw new RequestError({ code: 'entity.not_found', status: 404 });
-  }
-});
+const customPhrases = {
+  deleteCustomPhraseByLanguageTag: jest.fn(async (languageTag: string) => {
+    if (!mockCustomPhrases[languageTag]) {
+      throw new RequestError({ code: 'entity.not_found', status: 404 });
+    }
+  }),
+  findAllCustomPhrases: jest.fn(async (): Promise<CustomPhrase[]> => []),
+  findCustomPhraseByLanguageTag: jest.fn(async (languageTag: string) => {
+    const mockCustomPhrase = mockCustomPhrases[languageTag];
 
-const findCustomPhraseByLanguageTag = jest.fn(async (languageTag: string) => {
-  const mockCustomPhrase = mockCustomPhrases[languageTag];
+    if (!mockCustomPhrase) {
+      throw new RequestError({ code: 'entity.not_found', status: 404 });
+    }
 
-  if (!mockCustomPhrase) {
-    throw new RequestError({ code: 'entity.not_found', status: 404 });
-  }
+    return mockCustomPhrase;
+  }),
+  upsertCustomPhrase: jest.fn(async () => mockPhrase),
+};
+const {
+  deleteCustomPhraseByLanguageTag,
+  findAllCustomPhrases,
+  findCustomPhraseByLanguageTag,
+  upsertCustomPhrase,
+} = customPhrases;
 
-  return mockCustomPhrase;
-});
+const signInExperiences = {
+  findDefaultSignInExperience: jest.fn(
+    async (): Promise<SignInExperience> => ({
+      ...mockSignInExperience,
+      languageInfo: {
+        autoDetect: true,
+        fallbackLanguage: mockFallbackLanguage,
+      },
+    })
+  ),
+};
 
-const findAllCustomPhrases = jest.fn(async (): Promise<CustomPhrase[]> => []);
-
-const upsertCustomPhrase = jest.fn(async (customPhrase: CustomPhrase) => mockPhrase);
-
-jest.mock('#src/queries/custom-phrase.js', () => ({
-  deleteCustomPhraseByLanguageTag: async (tag: string) => deleteCustomPhraseByLanguageTag(tag),
-  findAllCustomPhrases: async () => findAllCustomPhrases(),
-  findCustomPhraseByLanguageTag: async (tag: string) => findCustomPhraseByLanguageTag(tag),
-  upsertCustomPhrase: async (customPhrase: CustomPhrase) => upsertCustomPhrase(customPhrase),
-}));
-
-const isStrictlyPartial = jest.fn(
-  (fullTranslation: Translation, partialTranslation: Partial<Translation>) => true
-);
-
-jest.mock('#src/utils/translation.js', () => ({
-  isStrictlyPartial: (fullTranslation: Translation, partialTranslation: Translation) =>
-    isStrictlyPartial(fullTranslation, partialTranslation),
+const { isStrictlyPartial } = mockEsm('#src/utils/translation.js', () => ({
+  isStrictlyPartial: jest.fn(() => true),
 }));
 
 const mockFallbackLanguage = trTrTag;
 
-const findDefaultSignInExperience = jest.fn(
-  async (): Promise<SignInExperience> => ({
-    ...mockSignInExperience,
-    languageInfo: {
-      autoDetect: true,
-      fallbackLanguage: mockFallbackLanguage,
-    },
-  })
-);
+const tenantContext = new MockTenant(undefined, { customPhrases, signInExperiences });
 
-jest.mock('#src/queries/sign-in-experience.js', () => ({
-  findDefaultSignInExperience: async () => findDefaultSignInExperience(),
-}));
+const customPhraseRoutes = await pickDefault(import('./custom-phrase.js'));
+const customPhraseRequest = createRequester({ authedRoutes: customPhraseRoutes, tenantContext });
 
 describe('customPhraseRoutes', () => {
-  const customPhraseRequest = createRequester({ authedRoutes: customPhraseRoutes });
-
   afterEach(() => {
     jest.clearAllMocks();
   });
@@ -80,11 +82,13 @@ describe('customPhraseRoutes', () => {
 
     it('should return all custom phrases', async () => {
       const mockCustomPhrase = {
+        tenantId: 'fake_tenant',
+        id: 'fake_id',
         languageTag: 'zh-HK',
         translation: {
           input: { username: '用戶名', password: '密碼' },
         },
-      };
+      } satisfies CustomPhrase;
       findAllCustomPhrases.mockImplementationOnce(async () => [mockCustomPhrase]);
       const response = await customPhraseRequest.get('/custom-phrases');
       expect(response.status).toEqual(200);
@@ -125,6 +129,7 @@ describe('customPhraseRoutes', () => {
         input: { ...inputTranslation, password: '' },
       });
       expect(upsertCustomPhrase).toBeCalledWith({
+        id: mockId,
         languageTag: mockLanguageTag,
         translation: { input: inputTranslation },
       });
@@ -145,7 +150,9 @@ describe('customPhraseRoutes', () => {
 
     it('should call upsertCustomPhrase with specified language tag', async () => {
       await customPhraseRequest.put(`/custom-phrases/${mockLanguageTag}`).send(translation);
-      expect(upsertCustomPhrase).toBeCalledWith(mockCustomPhrases[mockLanguageTag]);
+
+      const { tenantId, ...phrase } = mockCustomPhrases[mockLanguageTag]!;
+      expect(upsertCustomPhrase).toBeCalledWith(phrase);
     });
 
     it('should return custom phrase after upserting', async () => {

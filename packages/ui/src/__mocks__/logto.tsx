@@ -1,17 +1,11 @@
-import type { SignInExperience } from '@logto/schemas';
-import {
-  BrandingStyle,
-  ConnectorPlatform,
-  ConnectorType,
-  SignInIdentifier,
-  SignInMode,
-  SignUpIdentifier,
-} from '@logto/schemas';
+import type { SignInExperience, SignIn } from '@logto/schemas';
+import { ConnectorPlatform, ConnectorType, SignInIdentifier, SignInMode } from '@logto/schemas';
 
-import type { SignInExperienceSettings } from '@/types';
+import type { SignInExperienceResponse } from '@/types';
 
 export const appLogo = 'https://avatars.githubusercontent.com/u/88327661?s=200&v=4';
 export const appHeadline = 'Build user identity in a modern way';
+
 export const socialConnectors = [
   {
     id: 'BE8QXN0VsrOH7xdWFDJZ9',
@@ -167,8 +161,8 @@ export const emailSignInMethod = {
   isPasswordPrimary: true,
 };
 
-export const smsSignInMethod = {
-  identifier: SignInIdentifier.Sms,
+export const phoneSignInMethod = {
+  identifier: SignInIdentifier.Phone,
   password: true,
   verificationCode: true,
   isPasswordPrimary: true,
@@ -182,6 +176,7 @@ export const usernameSignInMethod = {
 };
 
 export const mockSignInExperience: SignInExperience = {
+  tenantId: 'default',
   id: 'foo',
   color: {
     primaryColor: '#000',
@@ -189,39 +184,39 @@ export const mockSignInExperience: SignInExperience = {
     darkPrimaryColor: '#fff',
   },
   branding: {
-    style: BrandingStyle.Logo_Slogan,
     logoUrl: 'http://logto.png',
-    slogan: 'logto',
   },
-  termsOfUse: {
-    enabled: true,
-    contentUrl: 'http://terms.of.use/',
-  },
+  termsOfUseUrl: 'http://terms.of.use/',
+  privacyPolicyUrl: 'http://privacy.policy/',
   languageInfo: {
     autoDetect: true,
     fallbackLanguage: 'en',
   },
   signUp: {
-    identifier: SignUpIdentifier.Username,
+    identifiers: [SignInIdentifier.Username],
     password: true,
     verify: true,
   },
   signIn: {
-    methods: [usernameSignInMethod, emailSignInMethod, smsSignInMethod],
+    methods: [usernameSignInMethod, emailSignInMethod, phoneSignInMethod],
   },
   socialSignInConnectorTargets: ['BE8QXN0VsrOH7xdWFDJZ9', 'lcXT4o2GSjbV9kg2shZC7'],
   signInMode: SignInMode.SignInAndRegister,
+  customCss: null,
+  customContent: {},
 };
 
-export const mockSignInExperienceSettings: SignInExperienceSettings = {
+export const mockSignInExperienceSettings: SignInExperienceResponse = {
+  tenantId: 'default',
   id: mockSignInExperience.id,
   color: mockSignInExperience.color,
   branding: mockSignInExperience.branding,
-  termsOfUse: mockSignInExperience.termsOfUse,
+  termsOfUseUrl: mockSignInExperience.termsOfUseUrl,
+  privacyPolicyUrl: mockSignInExperience.privacyPolicyUrl,
   languageInfo: mockSignInExperience.languageInfo,
   signIn: mockSignInExperience.signIn,
   signUp: {
-    methods: [SignInIdentifier.Username],
+    identifiers: [SignInIdentifier.Username],
     password: true,
     verify: true,
   },
@@ -229,6 +224,77 @@ export const mockSignInExperienceSettings: SignInExperienceSettings = {
   signInMode: SignInMode.SignInAndRegister,
   forgotPassword: {
     email: true,
-    sms: true,
+    phone: true,
   },
+  customCss: null,
+  customContent: {},
 };
+
+const usernameSettings = {
+  identifier: SignInIdentifier.Username,
+  password: true,
+  verificationCode: false,
+  isPasswordPrimary: true,
+};
+
+export const mockSignInMethodSettingsTestCases: Array<SignIn['methods']> = [
+  [
+    usernameSettings,
+    {
+      identifier: SignInIdentifier.Email,
+      password: true,
+      verificationCode: true,
+      isPasswordPrimary: true,
+    },
+    {
+      identifier: SignInIdentifier.Phone,
+      password: true,
+      verificationCode: true,
+      isPasswordPrimary: true,
+    },
+  ],
+  [
+    usernameSettings,
+    {
+      identifier: SignInIdentifier.Email,
+      password: true,
+      verificationCode: true,
+      isPasswordPrimary: false,
+    },
+    {
+      identifier: SignInIdentifier.Phone,
+      password: true,
+      verificationCode: false,
+      isPasswordPrimary: false,
+    },
+  ],
+  [
+    usernameSettings,
+    {
+      identifier: SignInIdentifier.Email,
+      password: false,
+      verificationCode: true,
+      isPasswordPrimary: false,
+    },
+    {
+      identifier: SignInIdentifier.Phone,
+      password: false,
+      verificationCode: true,
+      isPasswordPrimary: false,
+    },
+  ],
+];
+
+export const getBoundingClientRectMock = (mock: Partial<DOMRect>) =>
+  jest.fn(() => ({
+    width: 0,
+    height: 0,
+    x: 0,
+    y: 0,
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    ...mock,
+    toJSON: jest.fn(),
+  }));

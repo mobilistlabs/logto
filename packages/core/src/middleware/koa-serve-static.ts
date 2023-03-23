@@ -2,33 +2,37 @@
 
 import path from 'path';
 
-import buildDebug from 'debug';
 import type { MiddlewareType } from 'koa';
 import send from 'koa-send';
 
 import assertThat from '#src/utils/assert-that.js';
 
-const debug = buildDebug('koa-static');
+const index = 'index.html';
 
 export default function serve(root: string) {
   assertThat(root, new Error('Root directory is required to serve files.'));
 
   const options: send.SendOptions = {
     root: path.resolve(root),
-    index: 'index.html',
+    index,
   };
-
-  debug('static "%s"', root);
 
   const serve: MiddlewareType = async (ctx, next) => {
     if (ctx.method === 'HEAD' || ctx.method === 'GET') {
-      await send(ctx, ctx.path, {
+      const filePath = await send(ctx, ctx.path, {
         ...options,
         // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
         ...(!['/', `/${options.index || ''}`].some((path) => ctx.path.endsWith(path)) && {
           maxage: 604_800_000 /* 7 days */,
         }),
       });
+
+      const filename = path.basename(filePath);
+
+      // No cache for the index file
+      if (filename === index || filename.startsWith(index + '.')) {
+        ctx.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      }
     }
 
     return next();

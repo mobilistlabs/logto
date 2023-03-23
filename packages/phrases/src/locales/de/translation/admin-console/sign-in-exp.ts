@@ -9,17 +9,16 @@ const sign_in_exp = {
     others: 'Andere',
   },
   welcome: {
-    title:
-      'Dies ist das erste Mal, dass du deine Anmeldeoberfläche anpasst. Diese Anleitung hilft dir, alle notwendigen Einstellungen vorzunehmen und schnell loszulegen.',
+    title: 'Customize sign-in experience', // UNTRANSLATED
+    description:
+      'Get started fast with your first sign-in setup. This guide walks you through all the necessary settings.', // UNTRANSLATED
     get_started: 'Erste Schritte',
     apply_remind:
       'Bitte beachte, dass die Anmeldeoberfläche für alle Anwendungen unter diesem Konto gilt.',
-    got_it: 'Alles klar',
   },
   sign_up_and_sign_in: {
-    identifiers: 'Sign-up identifiers', // UNTRANSLATED
     identifiers_email: 'Email address', // UNTRANSLATED
-    identifiers_sms: 'Phone number', // UNTRANSLATED
+    identifiers_phone: 'Phone number', // UNTRANSLATED
     identifiers_username: 'Username', // UNTRANSLATED
     identifiers_email_or_sms: 'Email address or phone number', // UNTRANSLATED
     identifiers_none: 'Not applicable', // UNTRANSLATED
@@ -53,7 +52,7 @@ const sign_in_exp = {
       social_sign_in: 'Social sign-in', // UNTRANSLATED
       description:
         'Depending on the mandatory identifier you set up, your user may be asked to provide an identifier when signing up via social connector.', // UNTRANSLATED
-      add_social_connector: 'Link Social Connector', // UNTRANSLATED
+      add_social_connector: 'Add Social Connector', // UNTRANSLATED
       set_up_hint: {
         not_in_list: 'Not in the list?', // UNTRANSLATED
         set_up_more: 'Set up', // UNTRANSLATED
@@ -85,25 +84,32 @@ const sign_in_exp = {
   branding: {
     title: 'BRANDING',
     ui_style: 'Stil',
-    styles: {
-      logo_slogan: 'App logo mit Slogan',
-      logo: 'Nur App logo',
-    },
+    favicon: 'Favicon', // UNTRANSLATED
     logo_image_url: 'App logo URL',
     logo_image_url_placeholder: 'https://dein.cdn.domain/logo.png',
     dark_logo_image_url: 'App logo URL (Dunkler Modus)',
     dark_logo_image_url_placeholder: 'https://dein.cdn.domain/logo-dark.png',
-    slogan: 'Slogan',
-    slogan_placeholder: 'Entfessle deine Kreativität',
+    logo_image: 'App logo',
+    dark_logo_image: 'App logo (Dunkler Modus)',
+    logo_image_error: 'App logo: {{error}}', // UNTRANSLATED
+    favicon_error: 'Favicon: {{error}}', // UNTRANSLATED
+  },
+  custom_css: {
+    title: 'Custom CSS', // UNTRANSLATED
+    css_code_editor_title: 'Personalize your UI with Custom CSS', // UNTRANSLATED
+    css_code_editor_description1: 'See the example of Custom CSS.', // UNTRANSLATED
+    css_code_editor_description2: '<a>{{link}}</a>', // UNTRANSLATED
+    css_code_editor_description_link_content: 'Learn more', // UNTRANSLATED
+    css_code_editor_content_placeholder:
+      'Enter your custom CSS to tailor the styles of anything to your exact specifications. Express your creativity and make your UI stand out.', // UNTRANSLATED
   },
   others: {
     terms_of_use: {
-      title: 'NUTZUNGSBEDINGUNGEN',
-      enable: 'Aktiviere Nutzungsbedingungen',
-      description: 'Füge die rechtlichen Vereinbarungen für die Nutzung deines Produkts hinzu',
-      terms_of_use: 'Nutzungsbedingungen',
+      title: 'Terms', // UNTRANSLATED
+      terms_of_use: 'URL zu den Nutzungsbedingungen',
       terms_of_use_placeholder: 'https://beispiel.de/nutzungsbedingungen',
-      terms_of_use_tip: 'URL zu den Nutzungsbedingungen',
+      privacy_policy: 'URL zu den Datenschutzrichtlinien',
+      privacy_policy_placeholder: 'https://beispiel.de/datenschutzrichtlinien',
     },
     languages: {
       title: 'SPRACHEN',
@@ -136,7 +142,6 @@ const sign_in_exp = {
       default_language_deletion_title: 'Die Standardsprache kann nicht gelöscht werden.',
       default_language_deletion_description:
         '{{language}} ist als Standardsprache eingestellt und kann nicht gelöscht werden. ',
-      got_it: 'Alles klar',
     },
     advanced_options: {
       title: 'ERWEITERTE OPTIONEN',
@@ -149,15 +154,15 @@ const sign_in_exp = {
     },
   },
   setup_warning: {
-    no_connector: '',
     no_connector_sms:
-      'No SMS connector set-up yet. Until you finish configuring your SMS connector, you won’t be able to sign in.', // UNTRANSLATED
+      'No SMS connector set-up yet. Before completing the configuration, users will not be able to sign in with this method. <a>{{link}}</a> in "Connectors"', // UNTRANSLATED
     no_connector_email:
-      'No email connector set-up yet. Until you finish configuring your email connector, you won’t be able to sign in.', // UNTRANSLATED
+      'No email connector set-up yet. Before completing the configuration, users will not be able to sign in with this method. <a>{{link}}</a> in "Connectors"', // UNTRANSLATED
     no_connector_social:
-      'No social connector set-up yet. Until you finish configuring your social connector, you won’t be able to sign in.', // UNTRANSLATED
+      'No social connector set-up yet. Before completing the configuration, users will not be able to sign in with this method. <a>{{link}}</a> in "Connectors"', // UNTRANSLATED
     no_added_social_connector:
       'Du hast jetzt ein paar Social Connectoren eingerichtet. Füge jetzt einige zu deinem Anmeldeerlebnis hinzu.',
+    setup_link: 'Set up',
   },
   save_alert: {
     description:
@@ -170,8 +175,8 @@ const sign_in_exp = {
   },
   preview: {
     title: 'Vorschau',
-    dark: 'Dunkel',
-    light: 'Hell',
+    live_preview: 'Live preview', // UNTRANSLATED
+    live_preview_tip: 'Save to preview changes', // UNTRANSLATED
     native: 'Nativ',
     desktop_web: 'Desktop Web',
     mobile_web: 'Mobil Web',

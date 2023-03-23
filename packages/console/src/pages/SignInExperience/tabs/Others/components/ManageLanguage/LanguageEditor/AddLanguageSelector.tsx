@@ -1,6 +1,5 @@
 import type { LanguageTag } from '@logto/language-kit';
 import { languages as uiLanguageNameMapping } from '@logto/language-kit';
-import classNames from 'classnames';
 import type { ChangeEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -8,8 +7,9 @@ import { useTranslation } from 'react-i18next';
 import Plus from '@/assets/images/plus.svg';
 import SearchIcon from '@/assets/images/search.svg';
 import Button from '@/components/Button';
+import OverlayScrollbar from '@/components/OverlayScrollbar';
 import TextInput from '@/components/TextInput';
-import { onKeyDownHandler } from '@/utilities/a11y';
+import { onKeyDownHandler } from '@/utils/a11y';
 
 import * as style from './AddLanguageSelector.module.scss';
 
@@ -18,7 +18,7 @@ type Props = {
   onSelect: (languageTag: LanguageTag) => void;
 };
 
-const AddLanguageSelector = ({ options, onSelect }: Props) => {
+function AddLanguageSelector({ options, onSelect }: Props) {
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
   const selectorRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -66,31 +66,33 @@ const AddLanguageSelector = ({ options, onSelect }: Props) => {
   return (
     <div ref={selectorRef} className={style.languageSelector}>
       <div className={style.input}>
-        <Button
-          className={classNames(style.addLanguageButton, isDropDownOpen && style.hidden)}
-          icon={<Plus className={style.buttonIcon} />}
-          title="sign_in_exp.others.manage_language.add_language"
-          type="default"
-          size="medium"
-          onClick={() => {
-            setIsDropDownOpen(true);
-          }}
-        />
-        <TextInput
-          ref={searchInputRef}
-          icon={<SearchIcon className={style.buttonIcon} />}
-          className={classNames(!isDropDownOpen && style.hidden)}
-          placeholder={t('general.type_to_search')}
-          value={searchInputValue}
-          onChange={(event: ChangeEvent<HTMLInputElement>) => {
-            setSearchInputValue(event.target.value);
-          }}
-        />
+        {isDropDownOpen ? (
+          <TextInput
+            ref={searchInputRef}
+            icon={<SearchIcon className={style.buttonIcon} />}
+            placeholder={t('general.type_to_search')}
+            value={searchInputValue}
+            onChange={(event: ChangeEvent<HTMLInputElement>) => {
+              setSearchInputValue(event.target.value);
+            }}
+          />
+        ) : (
+          <Button
+            className={style.addLanguageButton}
+            icon={<Plus className={style.buttonIcon} />}
+            title="sign_in_exp.others.manage_language.add_language"
+            type="default"
+            size="medium"
+            onClick={() => {
+              setIsDropDownOpen(true);
+            }}
+          />
+        )}
       </div>
       {isDropDownOpen && filteredOptions.length > 0 && (
-        <ul className={style.dropDown}>
+        <OverlayScrollbar className={style.dropDown}>
           {filteredOptions.map((languageTag) => (
-            <li
+            <div
               key={languageTag}
               role="tab"
               tabIndex={0}
@@ -104,12 +106,12 @@ const AddLanguageSelector = ({ options, onSelect }: Props) => {
             >
               <div className={style.languageName}>{uiLanguageNameMapping[languageTag]}</div>
               <div className={style.languageTag}>{languageTag}</div>
-            </li>
+            </div>
           ))}
-        </ul>
+        </OverlayScrollbar>
       )}
     </div>
   );
-};
+}
 
 export default AddLanguageSelector;

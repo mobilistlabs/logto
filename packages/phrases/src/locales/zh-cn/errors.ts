@@ -1,7 +1,11 @@
 const errors = {
+  request: {
+    invalid_input: '输入无效。{{details}}',
+    general: '发生请求错误。',
+  },
   auth: {
-    authorization_header_missing: '缺少权限标题',
-    authorization_token_type_not_supported: '权限类型不支持',
+    authorization_header_missing: 'Authorization 请求头缺失。',
+    authorization_token_type_not_supported: 'Authorization token 类型不支持',
     unauthorized: '未经授权。请检查凭据及其范围。',
     forbidden: '禁止访问。请检查用户 role 与权限。',
     expected_role_not_found: '未找到期望的 role。请检查用户 role 与权限。',
@@ -11,6 +15,9 @@ const errors = {
   guard: {
     invalid_input: '请求中 {{type}} 无效',
     invalid_pagination: '分页参数无效',
+    can_not_get_tenant_id: '无法从请求中获取租户 ID。',
+    file_size_exceeded: '文件大小超过限制。',
+    mime_type_not_allowed: '不允许使用此 MIME 类型。',
   },
   oidc: {
     aborted: '用户终止了交互。',
@@ -30,32 +37,34 @@ const errors = {
     provider_error: 'OIDC 内部错误: {{message}}',
   },
   user: {
-    username_exists_register: '用户名已被注册',
-    email_exists_register: '邮箱地址已被注册',
-    phone_exists_register: '手机号码已被注册',
-    invalid_email: '邮箱地址不正确',
-    invalid_phone: '手机号码不正确',
-    username_not_exists: '用户名尚未注册',
-    email_not_exists: '邮箱地址尚未注册',
-    phone_not_exists: '手机号码尚未注册',
-    identity_not_exists: '该社交帐号尚未注册',
-    identity_exists: '该社交帐号已被注册',
-    invalid_role_names: '角色名称（{{roleNames}}）无效',
-    cannot_delete_self: '你无法删除自己',
-    sign_up_method_not_enabled: '注册方式尚未启用',
-    sign_in_method_not_enabled: '登录方式尚未启用',
-    same_password: '为确保你的账户安全，新密码不能与旧密码一致',
-    require_password: '请设置密码',
-    password_exists: '密码已设置过',
-    require_username: '请设置用户名',
-    username_exists: '该用户名已存在',
-    require_email: '请绑定邮箱地址',
-    email_exists: '该邮箱地址已被其它账户绑定',
-    require_sms: '请绑定手机号码',
-    sms_exists: '该手机号码已被其它账户绑定',
-    require_email_or_sms: '请绑定邮箱地址或手机号码',
-    suspended: '账号已被禁用',
-    user_not_exist: 'User with {{ identity }} has not been registered yet', // UNTRANSLATED,
+    username_already_in_use: '该用户名已被使用。',
+    email_already_in_use: '该邮箱地址已被使用。',
+    phone_already_in_use: '该手机号码已被使用。',
+    invalid_email: '邮箱地址不正确。',
+    invalid_phone: '手机号码不正确。',
+    email_not_exist: '邮箱地址尚未注册。',
+    phone_not_exist: '手机号码尚未注册。',
+    identity_not_exist: '该社交帐号尚未注册。',
+    identity_already_in_use: '该社交帐号已被注册。',
+    social_account_exists_in_profile: '你已绑定当前社交账号，无需重复操作。',
+    cannot_delete_self: '无法删除自己的账户。',
+    sign_up_method_not_enabled: '注册方式尚未启用。',
+    sign_in_method_not_enabled: '登录方式尚未启用。',
+    same_password: '为确保账户安全，新密码不能与旧密码一致。',
+    password_required_in_profile: '请设置登录密码。',
+    new_password_required_in_profile: '请设置新密码。',
+    password_exists_in_profile: '当前用户已设置密码，无需重复操作。',
+    username_required_in_profile: '请设置用户名。',
+    username_exists_in_profile: '当前用户已设置用户名，无需重复操作。',
+    email_required_in_profile: '请绑定邮箱地址',
+    email_exists_in_profile: '当前用户已绑定邮箱，无需重复操作。',
+    phone_required_in_profile: '请绑定手机号码。',
+    phone_exists_in_profile: '当前用户已绑定手机号，无需重复操作。',
+    email_or_phone_required_in_profile: '请绑定邮箱地址或手机号码。',
+    suspended: '账号已被禁用。',
+    user_not_exist: '未找到与 {{identifier}} 相关联的用户。',
+    missing_profile: '请于登录时提供必要的用户补充信息。',
+    role_exists: '角色 ID {{roleId}} 已添加到此用户',
   },
   password: {
     unsupported_encryption_method: '不支持的加密方法 {{name}}',
@@ -63,7 +72,7 @@ const errors = {
   },
   session: {
     not_found: '未找到会话。请返回并重新登录。',
-    invalid_credentials: '用户名或密码错误，请检查你的输入。',
+    invalid_credentials: '账号或密码错误，请重新输入。',
     invalid_sign_in_method: '当前登录方式不可用',
     invalid_connector_id: '找不到 ID 为 {{connectorId}} 的可用连接器。',
     insufficient_info: '登录信息缺失，请检查你的输入。',
@@ -74,9 +83,13 @@ const errors = {
     unauthorized: '请先登录',
     unsupported_prompt_name: '不支持的 prompt name',
     forgot_password_not_enabled: '忘记密码功能没有开启。',
+    verification_failed: '验证失败，请重新验证。',
+    connector_validation_session_not_found: '找不到连接器用于验证 token 的信息。',
+    identifier_not_found: '找不到用户标识符。请返回并重新登录。',
+    interaction_not_found: '找不到交互会话。请返回并重新开始会话。',
   },
   connector: {
-    general: '连接器发生未知错误{{errorDescription}}',
+    general: '连接器发生错误：{{errorDescription}}',
     not_found: '找不到可用的 {{type}} 类型的连接器',
     not_enabled: '连接器尚未启用',
     invalid_metadata: '连接器 metadata 参数错误',
@@ -95,12 +108,17 @@ const errors = {
     social_auth_code_invalid: '无法获取 access_token，请检查授权 code 是否有效',
     more_than_one_sms: '同时存在超过 1 个短信连接器',
     more_than_one_email: '同时存在超过 1 个邮件连接器',
+    more_than_one_connector_factory: '找到多个连接器工厂（id 为 {{connectorIds}}），请删除多余项。',
     db_connector_type_mismatch: '数据库中存在一个类型不匹配的连接。',
     not_found_with_connector_id: '找不到所给 connector id 对应的连接器',
     multiple_instances_not_supported: '你选择的连接器不支持创建多实例。',
     invalid_type_for_syncing_profile: '只有社交连接器可以开启用户档案同步。',
+    can_not_modify_target: '不可修改连接器 target。',
+    should_specify_target: '你需要声明 target 的值。',
+    multiple_target_with_same_platform: '同一平台上，多个社交连接器不能重复使用相同的 “Target”。',
+    cannot_overwrite_metadata_for_non_standard_connector: '不可覆盖该连接器的 metadata 参数。',
   },
-  passcode: {
+  verification_code: {
     phone_email_empty: '手机号与邮箱地址均为空',
     not_found: '验证码不存在，请先请求发送验证码',
     phone_mismatch: '手机号码不匹配，请尝试请求新的验证码。',
@@ -111,23 +129,19 @@ const errors = {
   },
   sign_in_experiences: {
     empty_content_url_of_terms_of_use: '你启用了“使用条款”，请添加使用条款 URL。',
-    empty_logo: '请输入 logo URL',
-    empty_slogan: '你选择了 App logo + 标语的布局。请输入你的标语。',
     empty_social_connectors: '你启用了社交登录的方式。请至少选择一个社交连接器。',
     enabled_connector_not_found: '未找到已启用的 {{type}} 连接器',
     not_one_and_only_one_primary_sign_in_method: '主要的登录方式必须有且仅有一个，请检查你的输入。',
-    username_requires_password: 'Must enable set a password for username sign up identifier.', // UNTRANSLATED
-    passwordless_requires_verify: 'Must enable verify for email/phone sign up identifier.', // UNTRANSLATED
-    miss_sign_up_identifier_in_sign_in: 'Sign in methods must contain the sign up identifier.', // UNTRANSLATED
-    password_sign_in_must_be_enabled:
-      'Password sign in must be enabled when set a password is required in sign up.', // UNTRANSLATED
-    code_sign_in_must_be_enabled:
-      'Verification code sign in must be enabled when set a password is not required in sign up.', // UNTRANSLATED
-    unsupported_default_language: '{{language}}无法选择为默认语言。',
+    username_requires_password: '必须为用户名注册标识符启用设置密码。',
+    passwordless_requires_verify: '必须为电子邮件/电话注册标识符启用验证。',
+    miss_sign_up_identifier_in_sign_in: '登录方法必须包含注册标识符。',
+    password_sign_in_must_be_enabled: '必须在注册中要求设置密码时启用密码登录。',
+    code_sign_in_must_be_enabled: '必须在注册中不要求设置密码时启用验证码登录。',
+    unsupported_default_language: '{{language}} 无法选择为默认语言。',
     at_least_one_authentication_factor: '至少要选择一个登录要素',
   },
   localization: {
-    cannot_delete_default_language: '你已设置{{languageTag}}为你的默认语言，你无法删除默认语言。',
+    cannot_delete_default_language: '你已设置 {{languageTag}} 为你的默认语言，你无法删除默认语言。',
     invalid_translation_structure: '无效的数据格式，请检查你的输入并重试。',
   },
   swagger: {
@@ -141,7 +155,24 @@ const errors = {
     not_found: '该资源不存在',
   },
   log: {
-    invalid_type: 'The log type is invalid.', // UNTRANSLATED
+    invalid_type: '日志类型无效。',
+  },
+  role: {
+    name_in_use: '此角色名称 {{name}} 已被使用',
+    scope_exists: '作用域 ID {{scopeId}} 已添加到此角色',
+    user_exists: '用户 ID {{userId}} 已添加到此角色',
+    default_role_missing: '某些默认角色名称在数据库中不存在，请确保先创建角色',
+    internal_role_violation:
+      '你可能正在尝试更新或删除 Logto 禁止的内部角色。如果你要创建新角色，请尝试使用不以“#internal:”开头的名称。',
+  },
+  scope: {
+    name_exists: '此作用域名称 {{name}} 已被使用',
+    name_with_space: '作用域名称不能包含任何空格。',
+  },
+  storage: {
+    not_configured: '未配置存储提供程序。',
+    missing_parameter: '存储提供程序缺少参数 {{parameter}}。',
+    upload_error: '无法将文件上传到存储提供程序。',
   },
 };
 

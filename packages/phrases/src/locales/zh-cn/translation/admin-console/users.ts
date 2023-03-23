@@ -9,6 +9,11 @@ const users = {
   create_form_password: '密码',
   create_form_name: '姓名',
   unnamed: '未命名',
+  search: '按姓名、电子邮件、电话或用户名搜索',
+  check_user_detail: '查看用户详情',
+  placeholder_title: '用户管理',
+  placeholder_description:
+    '每个用户都有一个包含所有用户信息的个人资料。它由基本数据、社交身份和自定义数据组成。',
 };
 
 export default users;

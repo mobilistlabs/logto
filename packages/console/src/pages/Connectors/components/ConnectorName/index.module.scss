@@ -1,8 +1,8 @@
 @use '@/scss/underscore' as _;
 
-a.link {
-  color: inherit;
-  text-decoration: none;
+.container {
+  display: flex;
+  align-items: center;
 }
 
 .logoContainer {

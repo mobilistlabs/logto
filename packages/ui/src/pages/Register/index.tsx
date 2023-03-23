@@ -1,21 +1,19 @@
 import { SignInMode } from '@logto/schemas';
 import { useTranslation } from 'react-i18next';
 
+import LandingPageLayout from '@/Layout/LandingPageLayout';
 import Divider from '@/components/Divider';
 import TextLink from '@/components/TextLink';
-import LandingPageContainer from '@/containers/LandingPageContainer';
-import OtherMethodsLink from '@/containers/OtherMethodsLink';
-import { SocialSignInList } from '@/containers/SocialSignIn';
+import SocialSignInList from '@/containers/SocialSignInList';
+import TermsAndPrivacy from '@/containers/TermsAndPrivacy';
 import { useSieMethods } from '@/hooks/use-sie';
-import { UserFlow } from '@/types';
 
 import ErrorPage from '../ErrorPage';
-import Main from './Main';
+import IdentifierRegisterForm from './IdentifierRegisterForm';
 import * as styles from './index.module.scss';
 
 const Register = () => {
-  const { signUpMethods, socialConnectors, signInMode } = useSieMethods();
-  const otherMethods = signUpMethods.slice(1);
+  const { signUpMethods, socialConnectors, signInMode, signInMethods } = useSieMethods();
   const { t } = useTranslation();
 
   if (!signInMode || signInMode === SignInMode.SignIn) {
@@ -23,17 +21,22 @@ const Register = () => {
   }
 
   return (
-    <LandingPageContainer>
-      <Main signUpMethod={signUpMethods[0]} socialConnectors={socialConnectors} />
+    <LandingPageLayout title="description.create_your_account">
+      {signUpMethods.length > 0 && (
+        <IdentifierRegisterForm signUpMethods={signUpMethods} className={styles.main} />
+      )}
+      {signUpMethods.length === 0 && socialConnectors.length > 0 && (
+        <>
+          <TermsAndPrivacy className={styles.terms} />
+          <SocialSignInList className={styles.main} socialConnectors={socialConnectors} />
+        </>
+      )}
       {
-        // Other create account methods
-        otherMethods.length > 0 && (
-          <OtherMethodsLink
-            className={styles.otherMethods}
-            methods={otherMethods}
-            template="register_with"
-            flow={UserFlow.register}
-          />
+        // SignIn footer
+        signInMode === SignInMode.SignInAndRegister && signInMethods.length > 0 && (
+          <div className={styles.createAccount}>
+            {t('description.have_account')} <TextLink replace to="/sign-in" text="action.sign_in" />
+          </div>
         )
       }
       {
@@ -41,27 +44,11 @@ const Register = () => {
         signUpMethods.length > 0 && socialConnectors.length > 0 && (
           <>
             <Divider label="description.or" className={styles.divider} />
-            <SocialSignInList
-              isCollapseEnabled
-              socialConnectors={socialConnectors}
-              className={styles.main}
-            />
+            <SocialSignInList socialConnectors={socialConnectors} className={styles.main} />
           </>
         )
       }
-      {
-        // SignIn footer
-        signInMode === SignInMode.SignInAndRegister && signUpMethods.length > 0 && (
-          <>
-            <div className={styles.placeHolder} />
-            <div className={styles.createAccount}>
-              {t('description.have_account')}{' '}
-              <TextLink replace to="/sign-in" text="action.sign_in" />
-            </div>
-          </>
-        )
-      }
-    </LandingPageContainer>
+    </LandingPageLayout>
   );
 };
 

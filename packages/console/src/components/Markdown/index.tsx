@@ -14,7 +14,7 @@ type Props = {
   children: string;
 };
 
-const Markdown = ({ className, children }: Props) => {
+function Markdown({ className, children }: Props) {
   const tocIdSet = useRef<Set<string>>(new Set());
 
   const generateTocId = (text: string): Optional<string> => {
@@ -44,7 +44,7 @@ const Markdown = ({ className, children }: Props) => {
       remarkPlugins={[remarkGfm]}
       className={classNames(styles.markdown, className)}
       components={{
-        code: ({ node, inline, className, children, ...props }) => {
+        code: ({ inline, className, children, ...props }) => {
           const [, codeBlockType] = /language-(\w+)/.exec(className ?? '') ?? [];
 
           return inline ? (
@@ -78,6 +78,6 @@ const Markdown = ({ className, children }: Props) => {
       {children}
     </ReactMarkdown>
   );
-};
+}
 
 export default memo(Markdown);

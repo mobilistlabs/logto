@@ -2,19 +2,29 @@ import classNames from 'classnames';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
 
-import { onKeyDownHandler } from '@/utilities/a11y';
+import { onKeyDownHandler } from '@/utils/a11y';
 
 import * as styles from './TabNavItem.module.scss';
 
-type Props = {
-  href?: string;
+type BaseProps = {
   isActive?: boolean;
   errorCount?: number;
-  onClick?: () => void;
   children: React.ReactNode;
 };
 
-const TabNavItem = ({ children, href, isActive, errorCount = 0, onClick }: Props) => {
+type LinkStyleProps = {
+  href: string;
+};
+
+type TabStyleProps = {
+  onClick: () => void;
+};
+
+type Props =
+  | (BaseProps & LinkStyleProps & Partial<Record<keyof TabStyleProps, undefined>>)
+  | (BaseProps & TabStyleProps & Partial<Record<keyof LinkStyleProps, undefined>>);
+
+function TabNavItem({ children, href, isActive, errorCount = 0, onClick }: Props) {
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
   const location = useLocation();
   const selected = href ? location.pathname === href : isActive;
@@ -36,6 +46,6 @@ const TabNavItem = ({ children, href, isActive, errorCount = 0, onClick }: Props
       )}
     </div>
   );
-};
+}
 
 export default TabNavItem;

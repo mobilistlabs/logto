@@ -1,11 +1,12 @@
-import { useMemo, useState, useContext, useEffect, useCallback } from 'react';
+import { useMemo, useState, useContext, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
-import { resetPassword } from '@/apis/forgot-password';
-import type { ErrorHandlers } from '@/hooks/use-api';
+import { setUserPassword } from '@/apis/interaction';
 import useApi from '@/hooks/use-api';
 import { useConfirmModal } from '@/hooks/use-confirm-modal';
+import useErrorHandler from '@/hooks/use-error-handler';
+import type { ErrorHandlers } from '@/hooks/use-error-handler';
 import { PageContext } from '@/hooks/use-page-context';
 
 const useResetPassword = () => {
@@ -14,6 +15,9 @@ const useResetPassword = () => {
   const { setToast } = useContext(PageContext);
   const { show } = useConfirmModal();
   const [errorMessage, setErrorMessage] = useState<string>();
+
+  const handleError = useErrorHandler();
+  const asyncResetPassword = useApi(setUserPassword);
 
   const clearErrorMessage = useCallback(() => {
     // eslint-disable-next-line unicorn/no-useless-undefined
@@ -24,11 +28,7 @@ const useResetPassword = () => {
     () => ({
       'session.verification_session_not_found': async (error) => {
         await show({ type: 'alert', ModalContent: error.message, cancelText: 'action.got_it' });
-        navigate(-1);
-      },
-      'session.verification_expired': async (error) => {
-        await show({ type: 'alert', ModalContent: error.message, cancelText: 'action.got_it' });
-        navigate(-1);
+        navigate(-2);
       },
       'user.same_password': (error) => {
         setErrorMessage(error.message);
@@ -37,17 +37,26 @@ const useResetPassword = () => {
     [navigate, setErrorMessage, show]
   );
 
-  const { result, run: asyncResetPassword } = useApi(resetPassword, resetPasswordErrorHandlers);
+  const resetPassword = useCallback(
+    async (password: string) => {
+      const [error, result] = await asyncResetPassword(password);
 
-  useEffect(() => {
-    if (result) {
-      setToast(t('description.password_changed'));
-      navigate('/sign-in', { replace: true });
-    }
-  }, [navigate, result, setToast, t]);
+      if (error) {
+        await handleError(error, resetPasswordErrorHandlers);
+
+        return;
+      }
+
+      if (result) {
+        setToast(t('description.password_changed'));
+        navigate('/sign-in', { replace: true });
+      }
+    },
+    [asyncResetPassword, handleError, navigate, resetPasswordErrorHandlers, setToast, t]
+  );
 
   return {
-    resetPassword: asyncResetPassword,
+    resetPassword,
     errorMessage,
     clearErrorMessage,
   };

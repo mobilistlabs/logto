@@ -1,4 +1,3 @@
-import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import Close from '@/assets/images/close.svg';
@@ -8,7 +7,7 @@ import CardTitle from '@/components/CardTitle';
 import DangerousRaw from '@/components/DangerousRaw';
 import IconButton from '@/components/IconButton';
 import Spacer from '@/components/Spacer';
-import Tooltip from '@/components/Tooltip';
+import Tooltip from '@/components/Tip/Tooltip';
 import { SupportedSdk } from '@/types/applications';
 
 import * as styles from './index.module.scss';
@@ -24,30 +23,46 @@ const getSampleProjectUrl = (sdk: SupportedSdk) => {
   const githubUrlPrefix = 'https://github.com/logto-io';
 
   switch (sdk) {
-    case SupportedSdk.iOS:
+    case SupportedSdk.iOS: {
       return `${githubUrlPrefix}/swift/tree/master/Demos/SwiftUI%20Demo`;
-    case SupportedSdk.Android:
+    }
+
+    case SupportedSdk.Android: {
       return `${githubUrlPrefix}/kotlin/tree/master/android-sample-kotlin`;
-    case SupportedSdk.React:
+    }
+
+    case SupportedSdk.React: {
       return `${githubUrlPrefix}/js/tree/master/packages/react-sample`;
-    case SupportedSdk.Vue:
+    }
+
+    case SupportedSdk.Vue: {
       return `${githubUrlPrefix}/js/tree/master/packages/vue-sample`;
-    case SupportedSdk.Vanilla:
+    }
+
+    case SupportedSdk.Vanilla: {
       return `${githubUrlPrefix}/js/tree/master/packages/browser-sample`;
-    case SupportedSdk.Next:
+    }
+
+    case SupportedSdk.Next: {
       return `${githubUrlPrefix}/js/tree/master/packages/next-sample`;
-    case SupportedSdk.Express:
+    }
+
+    case SupportedSdk.Express: {
       return `${githubUrlPrefix}/js/tree/master/packages/express-sample`;
-    case SupportedSdk.GoWeb:
+    }
+
+    case SupportedSdk.Go: {
       return `${githubUrlPrefix}/go/tree/master/gin-sample`;
-    default:
+    }
+
+    default: {
       return '';
+    }
   }
 };
 
-const GuideHeader = ({ appName, selectedSdk, isCompact = false, onClose }: Props) => {
+function GuideHeader({ appName, selectedSdk, isCompact = false, onClose }: Props) {
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
-  const tipRef = useRef<HTMLDivElement>(null);
 
   const onClickGetSample = () => {
     const sampleUrl = getSampleProjectUrl(selectedSdk);
@@ -64,12 +79,15 @@ const GuideHeader = ({ appName, selectedSdk, isCompact = false, onClose }: Props
             subtitle="applications.guide.header_description"
           />
           <Spacer />
-          <IconButton className={styles.githubIcon} size="large" onClick={onClickGetSample}>
-            <div ref={tipRef}>
+          <Tooltip
+            placement="bottom"
+            anchorClassName={styles.githubToolTipAnchor}
+            content={t('applications.guide.get_sample_file')}
+          >
+            <IconButton className={styles.githubIcon} size="large" onClick={onClickGetSample}>
               <GetSample />
-            </div>
-            <Tooltip anchorRef={tipRef} content={t('applications.guide.get_sample_file')} />
-          </IconButton>
+            </IconButton>
+          </Tooltip>
           <IconButton size="large" onClick={onClose}>
             <Close className={styles.closeIcon} />
           </IconButton>
@@ -98,6 +116,6 @@ const GuideHeader = ({ appName, selectedSdk, isCompact = false, onClose }: Props
       )}
     </div>
   );
-};
+}
 
 export default GuideHeader;

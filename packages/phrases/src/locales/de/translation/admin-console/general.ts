@@ -2,6 +2,7 @@ const general = {
   placeholder: 'Platzhalter',
   skip: 'Überspringen',
   next: 'Weiter',
+  back: 'Back', // UNTRANSLATED
   retry: 'Erneut versuchen',
   done: 'Fertig',
   search: 'Suche',
@@ -30,7 +31,7 @@ const general = {
   copying: 'Kopiere',
   copied: 'Kopiert',
   required: 'Erforderlich',
-  add_another: '+ Weitere hinzufügen',
+  add_another: 'Weitere hinzufügen',
   deletion_confirmation: 'Willst du {{title}} wirklich löschen?',
   settings_nav: 'Einstellungen',
   unsaved_changes_warning:
@@ -38,10 +39,18 @@ const general = {
   leave_page: 'Seite verlassen',
   stay_on_page: 'Auf Seite bleiben',
   type_to_search: 'Tippe um zu suchen',
-  got_it: 'Got it', // UNTRANSLATED
+  got_it: 'Alles klar',
+  continue: 'Continue', // UNTRANSLATED
   page_info: '{{min, number}}-{{max, number}} of {{total, number}}', // UNTRANSLATED
   learn_more: 'Learn more', // UNTRANSLATED
   tab_errors: '{{count, number}} errors', // UNTRANSLATED
+  skip_for_now: 'Skip for now', // UNTRANSLATED
+  remove: 'Remove', // UNTRANSLATED
+  visit: 'Visit', // UNTRANSLATED
+  join: 'Join', // UNTRANSLATED
+  try_now: 'Try Now', // UNTRANSLATED
+  multiple_form_field: '(Multiple)', // UNTRANSLATED
+  demo: 'Demo', // UNTRANSLATED
 };
 
 export default general;

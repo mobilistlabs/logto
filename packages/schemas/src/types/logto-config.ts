@@ -1,37 +1,15 @@
 import type { ZodType } from 'zod';
 import { z } from 'zod';
 
-// Alteration state
-export enum AlterationStateKey {
-  AlterationState = 'alterationState',
-}
-
-export type AlterationState = { timestamp: number; updatedAt?: string };
-
-export type AlterationStateType = {
-  [AlterationStateKey.AlterationState]: AlterationState;
-};
-
-export const alterationStateGuard: Readonly<{
-  [key in AlterationStateKey]: ZodType<AlterationStateType[key]>;
-}> = Object.freeze({
-  [AlterationStateKey.AlterationState]: z.object({
-    timestamp: z.number(),
-    updatedAt: z.string().optional(),
-  }),
-});
-
-// Logto OIDC config
+/* --- Logto OIDC configs --- */
 export enum LogtoOidcConfigKey {
   PrivateKeys = 'oidc.privateKeys',
   CookieKeys = 'oidc.cookieKeys',
-  RefreshTokenReuseInterval = 'oidc.refreshTokenReuseInterval',
 }
 
 export type LogtoOidcConfigType = {
   [LogtoOidcConfigKey.PrivateKeys]: string[];
   [LogtoOidcConfigKey.CookieKeys]: string[];
-  [LogtoOidcConfigKey.RefreshTokenReuseInterval]: number;
 };
 
 export const logtoOidcConfigGuard: Readonly<{
@@ -39,25 +17,51 @@ export const logtoOidcConfigGuard: Readonly<{
 }> = Object.freeze({
   [LogtoOidcConfigKey.PrivateKeys]: z.string().array(),
   [LogtoOidcConfigKey.CookieKeys]: z.string().array(),
-  /**
-   * This interval helps to avoid concurrency issues when exchanging the rotating refresh token multiple times within a given timeframe.
-   * During the leeway window (in seconds), the consumed refresh token will be considered as valid.
-   * This is useful for distributed apps and serverless apps like Next.js, in which there is no shared memory.
-   */
-  [LogtoOidcConfigKey.RefreshTokenReuseInterval]: z.number().gte(3),
 });
 
-// Summary
-export type LogtoConfigKey = AlterationStateKey | LogtoOidcConfigKey;
-export type LogtoConfigType = AlterationStateType | LogtoOidcConfigType;
-export type LogtoConfigGuard = typeof alterationStateGuard & typeof logtoOidcConfigGuard;
+/* --- Logto tenant configs --- */
+export const adminConsoleDataGuard = z.object({
+  // Get started challenges
+  livePreviewChecked: z.boolean(),
+  applicationCreated: z.boolean(),
+  signInExperienceCustomized: z.boolean(),
+  passwordlessConfigured: z.boolean(),
+  communityChecked: z.boolean(),
+  furtherReadingsChecked: z.boolean(),
+  roleCreated: z.boolean(),
+  m2mApplicationCreated: z.boolean(),
+});
+
+export type AdminConsoleData = z.infer<typeof adminConsoleDataGuard>;
+
+export enum LogtoTenantConfigKey {
+  AdminConsole = 'adminConsole',
+  /** The URL to redirect when session not found in Sign-in Experience. */
+  SessionNotFoundRedirectUrl = 'sessionNotFoundRedirectUrl',
+}
+export type LogtoTenantConfigType = {
+  [LogtoTenantConfigKey.AdminConsole]: AdminConsoleData;
+  [LogtoTenantConfigKey.SessionNotFoundRedirectUrl]: { url: string };
+};
+
+export const logtoTenantConfigGuard: Readonly<{
+  [key in LogtoTenantConfigKey]: ZodType<LogtoTenantConfigType[key]>;
+}> = Object.freeze({
+  [LogtoTenantConfigKey.AdminConsole]: adminConsoleDataGuard,
+  [LogtoTenantConfigKey.SessionNotFoundRedirectUrl]: z.object({ url: z.string() }),
+});
+
+/* --- Summary --- */
+export type LogtoConfigKey = LogtoOidcConfigKey | LogtoTenantConfigKey;
+export type LogtoConfigType = LogtoOidcConfigType | LogtoTenantConfigType;
+export type LogtoConfigGuard = typeof logtoOidcConfigGuard & typeof logtoTenantConfigGuard;
 
 export const logtoConfigKeys: readonly LogtoConfigKey[] = Object.freeze([
-  ...Object.values(AlterationStateKey),
   ...Object.values(LogtoOidcConfigKey),
+  ...Object.values(LogtoTenantConfigKey),
 ]);
 
 export const logtoConfigGuards: LogtoConfigGuard = Object.freeze({
-  ...alterationStateGuard,
   ...logtoOidcConfigGuard,
+  ...logtoTenantConfigGuard,
 });

@@ -1,5 +1,6 @@
-import SecondaryPageWrapper from '@/components/SecondaryPageWrapper';
+import SecondaryPageLayout from '@/Layout/SecondaryPageLayout';
 import SetPasswordForm from '@/containers/SetPassword';
+import { passwordMinLength } from '@/utils/form';
 
 import useSetPassword from './use-set-password';
 
@@ -7,12 +8,13 @@ const SetPassword = () => {
   const { setPassword } = useSetPassword();
 
   return (
-    <SecondaryPageWrapper
+    <SecondaryPageLayout
       title="description.set_password"
-      notification="description.continue_with_more_information"
+      description="error.invalid_password"
+      descriptionProps={{ min: passwordMinLength }}
     >
       <SetPasswordForm autoFocus onSubmit={setPassword} />
-    </SecondaryPageWrapper>
+    </SecondaryPageLayout>
   );
 };
 

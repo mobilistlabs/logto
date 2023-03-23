@@ -1,11 +1,12 @@
 import type { Resource } from '@logto/schemas';
 import { useForm } from 'react-hook-form';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 
 import Button from '@/components/Button';
 import FormField from '@/components/FormField';
 import ModalLayout from '@/components/ModalLayout';
 import TextInput from '@/components/TextInput';
+import TextLink from '@/components/TextLink';
 import useApi from '@/hooks/use-api';
 
 type FormData = {
@@ -17,7 +18,7 @@ type Props = {
   onClose?: (createdApiResource?: Resource) => void;
 };
 
-const CreateForm = ({ onClose }: Props) => {
+function CreateForm({ onClose }: Props) {
   const {
     handleSubmit,
     register,
@@ -32,7 +33,7 @@ const CreateForm = ({ onClose }: Props) => {
       return;
     }
 
-    const createdApiResource = await api.post('/api/resources', { json: data }).json<Resource>();
+    const createdApiResource = await api.post('api/resources', { json: data }).json<Resource>();
     onClose?.(createdApiResource);
   });
 
@@ -64,7 +65,21 @@ const CreateForm = ({ onClose }: Props) => {
         <FormField
           isRequired
           title="api_resources.api_identifier"
-          tooltip="api_resources.api_identifier_tip"
+          tip={(closeTipHandler) => (
+            <Trans
+              components={{
+                a: (
+                  <TextLink
+                    href="https://datatracker.ietf.org/doc/html/rfc8707#section-2"
+                    target="_blank"
+                    onClick={closeTipHandler}
+                  />
+                ),
+              }}
+            >
+              {t('api_resources.api_identifier_tip')}
+            </Trans>
+          )}
         >
           <TextInput
             {...register('indicator', { required: true })}
@@ -74,6 +89,6 @@ const CreateForm = ({ onClose }: Props) => {
       </form>
     </ModalLayout>
   );
-};
+}
 
 export default CreateForm;

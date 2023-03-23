@@ -1,4 +1,8 @@
 const errors = {
+  request: {
+    invalid_input: 'Girdi geçersiz. {{details}}',
+    general: 'İstek hatası oluştu.',
+  },
   auth: {
     authorization_header_missing: 'Yetkilendirme başlığı eksik.',
     authorization_token_type_not_supported: 'Yetkilendirme tipi desteklenmiyor.',
@@ -7,11 +11,15 @@ const errors = {
     expected_role_not_found:
       'Expected role not found. Please check your user roles and permissions.',
     jwt_sub_missing: 'JWTde `sub` eksik.',
-    require_re_authentication: 'Re-authentication is required to perform a protected action.', // UNTRANSLATED
+    require_re_authentication:
+      'Korumalı bir işlem gerçekleştirmek için yeniden doğrulama gereklidir.',
   },
   guard: {
     invalid_input: 'İstek {{type}} geçersiz.',
     invalid_pagination: 'İstenen sayfalandırma değeri geçersiz.',
+    can_not_get_tenant_id: 'İstekten kiracı kimliği alınamadı.',
+    file_size_exceeded: 'Dosya boyutu aşıldı.',
+    mime_type_not_allowed: 'MIME türü izin verilmiyor.',
   },
   oidc: {
     aborted: 'Son kullanıcı etkileşimi iptal etti.',
@@ -32,31 +40,35 @@ const errors = {
     provider_error: 'Dahili OIDC Hatası: {{message}}.',
   },
   user: {
-    username_exists_register: 'Kullanıcı adı kaydedildi.',
-    email_exists_register: 'E-posta adresi kaydedildi.',
-    phone_exists_register: 'Telefon numarası kaydedildi.',
+    username_already_in_use: 'Bu kullanıcı adı zaten kullanımda.',
+    email_already_in_use: 'Bu e-posta mevcut bir hesapla ilişkilendirilmiştir.',
+    phone_already_in_use: 'Bu telefon numarası mevcut bir hesapla ilişkilendirilmiştir.',
     invalid_email: 'Geçersiz e-posta adresi.',
     invalid_phone: 'Geçersiz telefon numarası.',
-    email_not_exists: 'E-posta adresi henüz kaydedilmedi.',
-    phone_not_exists: 'Telefon numarası henüz kaydedilmedi',
-    identity_not_exists: 'Sosyal platform hesabı henüz kaydedilmedi.',
-    identity_exists: 'Sosyal platform hesabı kaydedildi.',
-    invalid_role_names: '({{roleNames}}) rol adları geçerli değil.',
-    cannot_delete_self: 'You cannot delete yourself.', // UNTRANSLATED
-    sign_up_method_not_enabled: 'This sign up method is not enabled.', // UNTRANSLATED
-    sign_in_method_not_enabled: 'This sign in method is not enabled.', // UNTRANSLATED
-    same_password: 'New password cannot be the same as your old password.', // UNTRANSLATED
-    require_password: 'You need to set a password before signing-in.', // UNTRANSLATED
-    password_exists: 'Your password has been set.', // UNTRANSLATED
-    require_username: 'You need to set a username before signing-in.', // UNTRANSLATED
-    username_exists: 'This username is already in use.', // UNTRANSLATED
-    require_email: 'You need to add an email address before signing-in.', // UNTRANSLATED
-    email_exists: 'This email is associated with an existing account.', // UNTRANSLATED
-    require_sms: 'You need to add a phone number before signing-in.', // UNTRANSLATED
-    sms_exists: 'This phone number is associated with an existing account.', // UNTRANSLATED
-    require_email_or_sms: 'You need to add an email address or phone number before signing-in.', // UNTRANSLATED
-    suspended: 'This account is suspended.', // UNTRANSLATED
-    user_not_exist: 'User with {{ identity }} has not been registered yet', // UNTRANSLATED,
+    email_not_exist: 'E-posta adresi henüz kaydedilmedi.',
+    phone_not_exist: 'Telefon numarası henüz kaydedilmedi',
+    identity_not_exist: 'Sosyal platform hesabı henüz kaydedilmedi.',
+    identity_already_in_use: 'Sosyal platform hesabı kaydedildi.',
+    social_account_exists_in_profile: 'Bu sosyal hesap zaten ilişkilendirilmiş.',
+    cannot_delete_self: 'Kendinizi silemezsiniz.',
+    sign_up_method_not_enabled: 'Bu kayıt yöntemi etkin değil.',
+    sign_in_method_not_enabled: 'Bu oturum açma yöntemi etkin değil.',
+    same_password: 'Yeni şifre, eski şifrenizle aynı olamaz.',
+    password_required_in_profile: 'Oturum açmadan önce bir şifre belirlemeniz gerekiyor.',
+    new_password_required_in_profile: 'Yeni bir şifre belirlemeniz gerekiyor.',
+    password_exists_in_profile: 'Şifre profilinizde zaten mevcut.',
+    username_required_in_profile: 'Oturum açmadan önce bir kullanıcı adı belirlemeniz gerekiyor.',
+    username_exists_in_profile: 'Kullanıcı adı profilinizde zaten mevcut.',
+    email_required_in_profile: 'Oturum açmadan önce bir e-posta adresi eklemeniz gerekiyor.',
+    email_exists_in_profile: 'Profiliniz zaten bir e-posta adresi ile ilişkilendirilmiştir.',
+    phone_required_in_profile: 'Oturum açmadan önce bir telefon numarası eklemeniz gerekiyor.',
+    phone_exists_in_profile: 'Profiliniz zaten bir telefon numarası ile ilişkilendirilmiştir.',
+    email_or_phone_required_in_profile:
+      'Oturum açmadan önce bir e-posta adresi veya telefon numarası eklemeniz gerekiyor.',
+    suspended: 'Bu hesap askıya alındı.',
+    user_not_exist: '{{identifier}} kimliğine sahip kullanıcı mevcut değil.',
+    missing_profile: 'Oturum açmadan önce ek bilgi sağlamanız gerekiyor.',
+    role_exists: '{{roleId}} rol kimliği bu kullanıcıya zaten eklenmiştir.',
   },
   password: {
     unsupported_encryption_method: '{{name}} şifreleme metodu desteklenmiyor.',
@@ -72,21 +84,27 @@ const errors = {
     connector_session_not_found:
       'Bağlayıcı oturum bulunamadı. Lütfen geri dönüp tekrardan giriş yapınız.',
     verification_session_not_found:
-      'The verification was not successful. Restart the verification flow and try again.', // UNTRANSLATED
+      'Doğrulama başarısız oldu. Lütfen doğrulama işlemini yeniden başlatın ve tekrar deneyin.',
     verification_expired:
-      'The connection has timed out. Verify again to ensure your account safety.', // UNTRANSLATED
+      'Bağlantı zaman aşımına uğradı. Hesap güvenliğiniz için yeniden doğrulama yapın.',
     unauthorized: 'Lütfen önce oturum açın.',
     unsupported_prompt_name: 'Desteklenmeyen prompt adı.',
-    forgot_password_not_enabled: 'Forgot password is not enabled.', // UNTRANSLATED
+    forgot_password_not_enabled: 'Parolamı unuttum özelliği etkin değil.',
+    verification_failed:
+      'Doğrulama başarısız oldu. Lütfen doğrulama işlemini yeniden başlatın ve tekrar deneyin.',
+    connector_validation_session_not_found: 'Token doğrulama için bağlayıcı oturumu bulunamadı.',
+    identifier_not_found: 'Kullanıcı kimliği bulunamadı. Lütfen geri gidin ve yeniden giriş yapın.',
+    interaction_not_found:
+      'Etkileşim oturumu bulunamadı. Lütfen geri gidin ve oturumu yeniden başlatın.',
   },
   connector: {
-    general: 'Bağlayıcıda beklenmeyen bir hata oldu.{{errorDescription}}',
+    general: 'Bağdaştırıcıda bir hata oluştu: {{errorDescription}}',
     not_found: '{{type}} tipi icin uygun bağlayıcı bulunamadı.',
     not_enabled: 'Bağlayıcı etkin değil.',
-    invalid_metadata: "The connector's metadata is invalid.", // UNTRANSLATED
-    invalid_config_guard: "The connector's config guard is invalid.", // UNTRANSLATED
-    unexpected_type: "The connector's type is unexpected.", // UNTRANSLATED
-    invalid_request_parameters: 'The request is with wrong input parameter(s).', // UNTRANSLATED
+    invalid_metadata: 'Bağlayıcının meta verileri geçersizdir.',
+    invalid_config_guard: 'Bağlayıcının yapılandırma koruyucusu geçersizdir.',
+    unexpected_type: 'Bağlayıcının türü beklenmedik.',
+    invalid_request_parameters: 'İstek yanlış girdi parametreleri ile gönderildi.',
     insufficient_request_parameters: 'İstek, bazı input parametrelerini atlayabilir.',
     invalid_config: 'Bağlayıcının ayarları geçersiz.',
     invalid_response: 'Bağlayıcının yanıtı geçersiz.',
@@ -100,45 +118,53 @@ const errors = {
     more_than_one_sms: 'SMS bağlayıcılarının sayısı 1den fazla.',
     more_than_one_email: 'E-posta adresi bağlayıcılarının sayısı 1den fazla.',
     db_connector_type_mismatch: 'Dbde türle eşleşmeyen bir bağlayıcı var.',
-    not_found_with_connector_id: 'Can not find connector with given standard connector id.', // UNTRANSLATED
+    more_than_one_connector_factory:
+      'Birden fazla bağlayıcı fabrikası bulundu ({{connectorIds}} ID numarasıyla), gereksiz olanları kaldırabilirsiniz.',
+    not_found_with_connector_id: 'Belirtilen standart bağlayıcı kimliğiyle bağlayıcı bulunamadı.',
     multiple_instances_not_supported:
-      'Can not create multiple instance with picked standard connector.', // UNTRANSLATED
-    invalid_type_for_syncing_profile: 'You can only sync user profile with social connectors.', // UNTRANSLATED
+      'Seçilen standart bağlayıcı ile birden fazla örnek oluşturulamaz.',
+    invalid_type_for_syncing_profile:
+      'Kullanıcı profili yalnızca sosyal bağlayıcılarla senkronize edilebilir.',
+    can_not_modify_target: "'Hedef' bağlayıcı değiştirilemez.",
+    should_specify_target: "'Hedef' belirtilmelidir.",
+    multiple_target_with_same_platform:
+      'Aynı hedefe ve platforma sahip birden fazla sosyal bağlayıcıya sahip olamazsınız.',
+    cannot_overwrite_metadata_for_non_standard_connector:
+      "Bu bağlayıcının 'metadata'sı üzerine yazılamaz.",
   },
-  passcode: {
-    phone_email_empty: 'Hem telefon hem de e-posta adresi yok.',
-    not_found: 'Kod bulunamadı. Lütfen önce kodu gönderiniz.',
-    phone_mismatch: 'Telefon numarası eşleşmedi. Lütfen yeni bir kod isteyiniz.',
-    email_mismatch: 'E-posta adresi eşleşmedi. Lütfen yeni bir kod isteyiniz.',
-    code_mismatch: 'Geçersiz kod.',
-    expired: 'Kodun Süresi doldu. Lütfen yeni bir kod isteyiniz.',
-    exceed_max_try: 'Kod doğrulama sınırı aşıldı. Lütfen yeni bir kod isteyiniz.',
+  verification_code: {
+    phone_email_empty: 'Telefon ve e-posta alanları boş.',
+    not_found: 'Doğrulama kodu bulunamadı. Lütfen önce doğrulama kodu gönderin.',
+    phone_mismatch: 'Telefon eşleşmiyor. Lütfen yeni bir doğrulama kodu isteyin.',
+    email_mismatch: 'E-posta eşleşmiyor. Lütfen yeni bir doğrulama kodu isteyin.',
+    code_mismatch: 'Geçersiz doğrulama kodu.',
+    expired: 'Doğrulama kodu süresi dolmuştur. Lütfen yeni bir doğrulama kodu isteyin.',
+    exceed_max_try: 'Doğrulama kodu deneme sınırı aşıldı. Lütfen yeni bir doğrulama kodu isteyin.',
   },
   sign_in_experiences: {
     empty_content_url_of_terms_of_use:
       '"Kullanım Koşulları" İçerik URLi yok. Lütfen "Kullanım Koşulları" etkinse içerik URLi ekleyiniz.',
-    empty_logo: 'Lütfen logo URLini giriniz',
-    empty_slogan:
-      'Marka sloganı yok. Eğer UI stili slogan içeriyorsa, lütfen bir marka sloganı ekleyin.',
     empty_social_connectors:
       'Social connectors yok. Sosyal oturum açma yöntemi etkinleştirildiğinde lütfen etkin social connectorları ekleyiniz.',
     enabled_connector_not_found: 'Etkin {{type}} bağlayıcı bulunamadı.',
     not_one_and_only_one_primary_sign_in_method:
       'Yalnızca bir tane birincil oturum açma yöntemi olmalıdır. Lütfen inputu kontrol ediniz.',
-    username_requires_password: 'Must enable set a password for username sign up identifier.', // UNTRANSLATED
-    passwordless_requires_verify: 'Must enable verify for email/phone sign up identifier.', // UNTRANSLATED
-    miss_sign_up_identifier_in_sign_in: 'Sign in methods must contain the sign up identifier.', // UNTRANSLATED
+    username_requires_password: 'Kullanıcı adı kayıt kimliği için bir şifre belirlemek zorunludur.',
+    passwordless_requires_verify:
+      'E-posta/telefon kayıt kimliği için doğrulama etkinleştirilmelidir.',
+    miss_sign_up_identifier_in_sign_in: 'Oturum açma yöntemleri, kayıt kimliğini içermelidir.',
     password_sign_in_must_be_enabled:
-      'Password sign in must be enabled when set a password is required in sign up.', // UNTRANSLATED
+      'Kayıtta şifre belirleme zorunlu olduğunda şifreyle oturum açma etkinleştirilmelidir.',
     code_sign_in_must_be_enabled:
-      'Verification code sign in must be enabled when set a password is not required in sign up.', // UNTRANSLATED
-    unsupported_default_language: 'This language - {{language}} is not supported at the moment.', // UNTRANSLATED
-    at_least_one_authentication_factor: 'You have to select at least one authentication factor.', // UNTRANSLATED
+      'Kayıtta şifre belirleme zorunlu olmadığında doğrulama koduyla oturum açma etkinleştirilmelidir.',
+    unsupported_default_language: 'Bu dil - {{language}}, şu anda desteklenmemektedir.',
+    at_least_one_authentication_factor: 'En az bir doğrulama faktörü seçmelisiniz.',
   },
   localization: {
     cannot_delete_default_language:
-      '{{languageTag}} is set as your default language and can’t be deleted.', // UNTRANSLATED
-    invalid_translation_structure: 'Invalid data schemas. Please check your input and try again.', // UNTRANSLATED
+      '{{languageTag}} varsayılan dil olarak ayarlanmıştır ve silinemez.',
+    invalid_translation_structure:
+      'Geçersiz veri şemaları. Lütfen girdilerinizi kontrol edin ve tekrar deneyin.',
   },
   swagger: {
     invalid_zod_type:
@@ -153,7 +179,25 @@ const errors = {
     not_found: 'Kaynak mevcut değil.',
   },
   log: {
-    invalid_type: 'The log type is invalid.', // UNTRANSLATED
+    invalid_type: 'Geçersiz günlük türü.',
+  },
+  role: {
+    name_in_use: 'Bu rol adı {{name}} zaten kullanımda',
+    scope_exists: 'Bu kapsam kimliği {{scopeId}} zaten bu role eklendi',
+    user_exists: 'Bu kullanıcı kimliği {{userId}} zaten bu role eklendi',
+    default_role_missing:
+      'Varsayılan rol adlarından bazıları veritabanında mevcut değil, lütfen önce rolleri oluşturduğunuzdan emin olun',
+    internal_role_violation:
+      'Logto tarafından yasaklanan dahili bir rolü güncelleme veya silmeye çalışıyor olabilirsiniz. Yeni bir rol oluşturuyorsanız, "#internal:" ile başlamayan başka bir isim deneyin.',
+  },
+  scope: {
+    name_exists: 'Bu kapsam adı {{name}} zaten kullanımda',
+    name_with_space: 'Kapsam adı boşluk içeremez.',
+  },
+  storage: {
+    not_configured: 'Depolama sağlayıcısı yapılandırılmamış.',
+    missing_parameter: 'Depolama sağlayıcısı için eksik parametre {{parameter}}.',
+    upload_error: 'Dosya yüklenemedi.',
   },
 };
 

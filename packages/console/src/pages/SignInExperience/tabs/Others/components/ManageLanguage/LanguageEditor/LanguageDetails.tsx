@@ -6,7 +6,7 @@ import type { SignInExperience, Translation } from '@logto/schemas';
 import cleanDeep from 'clean-deep';
 import deepmerge from 'deepmerge';
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { FormProvider, useForm } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import useSWR, { useSWRConfig } from 'swr';
@@ -16,40 +16,47 @@ import Delete from '@/assets/images/delete.svg';
 import Button from '@/components/Button';
 import ConfirmModal from '@/components/ConfirmModal';
 import IconButton from '@/components/IconButton';
+import Table from '@/components/Table';
+import Textarea from '@/components/Textarea';
+import { Tooltip } from '@/components/Tip';
 import useApi, { RequestError } from '@/hooks/use-api';
+import useSwrFetcher from '@/hooks/use-swr-fetcher';
 import useUiLanguages from '@/hooks/use-ui-languages';
+import {
+  createEmptyUiTranslation,
+  flattenTranslation,
+} from '@/pages/SignInExperience/utils/language';
 import type { CustomPhraseResponse } from '@/types/custom-phrase';
 
-import { createEmptyUiTranslation, flattenTranslation } from '../../../../../utilities';
-import EditSection from './EditSection';
-import * as style from './LanguageDetails.module.scss';
+import * as styles from './LanguageDetails.module.scss';
 import { LanguageEditorContext } from './use-language-editor-context';
 
 const emptyUiTranslation = createEmptyUiTranslation();
 
-const LanguageDetails = () => {
+function LanguageDetails() {
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
-
-  const { data: signInExperience } = useSWR<SignInExperience, RequestError>('/api/sign-in-exp');
-
+  const { data: signInExperience } = useSWR<SignInExperience, RequestError>('api/sign-in-exp');
   const { languages } = useUiLanguages();
-
   const { selectedLanguage, setIsDirty, setSelectedLanguage } = useContext(LanguageEditorContext);
-
   const [isDeletionAlertOpen, setIsDeletionAlertOpen] = useState(false);
-
   const isBuiltIn = isBuiltInLanguageTag(selectedLanguage);
-
   const isDefaultLanguage = signInExperience?.languageInfo.fallbackLanguage === selectedLanguage;
+  const fetchApi = useApi({ hideErrorToast: true });
+  const fetcher = useSwrFetcher<CustomPhraseResponse>(fetchApi);
 
   const translationEntries = useMemo(
-    () => Object.entries((isBuiltIn ? resource[selectedLanguage] : en).translation),
+    () =>
+      Object.entries((isBuiltIn ? resource[selectedLanguage] : en).translation).filter(
+        // Filter out the demo app phrases in AC
+        ([groupKey]) => groupKey !== 'demo_app'
+      ),
     [isBuiltIn, selectedLanguage]
   );
 
   const { data: customPhrase, mutate } = useSWR<CustomPhraseResponse, RequestError>(
-    `/api/custom-phrases/${selectedLanguage}`,
+    `api/custom-phrases/${selectedLanguage}`,
     {
+      fetcher,
       shouldRetryOnError: (error: unknown) => {
         if (error instanceof RequestError) {
           return error.status !== 404;
@@ -65,16 +72,15 @@ const LanguageDetails = () => {
     [customPhrase]
   );
 
-  const formMethods = useForm<Translation>({
-    defaultValues: defaultFormValues,
-  });
-
   const {
     handleSubmit,
     reset,
     setValue,
+    register,
     formState: { isSubmitting, isDirty, dirtyFields },
-  } = formMethods;
+  } = useForm<Translation>({
+    defaultValues: defaultFormValues,
+  });
 
   useEffect(() => {
     /**
@@ -94,20 +100,19 @@ const LanguageDetails = () => {
   ]);
 
   const { mutate: globalMutate } = useSWRConfig();
-
   const api = useApi();
 
   const upsertCustomPhrase = useCallback(
     async (languageTag: LanguageTag, translation: Translation) => {
       const updatedCustomPhrase = await api
-        .put(`/api/custom-phrases/${languageTag}`, {
+        .put(`api/custom-phrases/${languageTag}`, {
           json: {
             ...cleanDeep(translation),
           },
         })
         .json<CustomPhraseResponse>();
 
-      void globalMutate('/api/custom-phrases');
+      void globalMutate('api/custom-phrases');
 
       return updatedCustomPhrase;
     },
@@ -121,9 +126,9 @@ const LanguageDetails = () => {
       return;
     }
 
-    await api.delete(`/api/custom-phrases/${selectedLanguage}`);
+    await api.delete(`api/custom-phrases/${selectedLanguage}`);
 
-    await globalMutate('/api/custom-phrases');
+    await globalMutate('api/custom-phrases');
 
     setSelectedLanguage(languages.find((languageTag) => languageTag !== selectedLanguage) ?? 'en');
   }, [api, globalMutate, isDefaultLanguage, languages, selectedLanguage, setSelectedLanguage]);
@@ -147,49 +152,70 @@ const LanguageDetails = () => {
   ]);
 
   return (
-    <div className={style.languageDetails}>
-      <div className={style.title}>
-        <div className={style.languageInfo}>
+    <div className={styles.languageDetails}>
+      <div className={styles.title}>
+        <div className={styles.languageInfo}>
           {uiLanguageNameMapping[selectedLanguage]}
           <span>{selectedLanguage}</span>
           {isBuiltIn && (
-            <span className={style.builtInFlag}>
+            <span className={styles.builtInFlag}>
               {t('sign_in_exp.others.manage_language.logto_provided')}
             </span>
           )}
         </div>
         {!isBuiltIn && (
-          <IconButton
-            tooltip={t('sign_in_exp.others.manage_language.deletion_tip')}
-            onClick={() => {
-              setIsDeletionAlertOpen(true);
-            }}
-          >
-            <Delete />
-          </IconButton>
+          <Tooltip content={t('sign_in_exp.others.manage_language.deletion_tip')}>
+            <IconButton
+              onClick={() => {
+                setIsDeletionAlertOpen(true);
+              }}
+            >
+              <Delete />
+            </IconButton>
+          </Tooltip>
         )}
       </div>
-      <form
-        onSubmit={async (event) => {
-          // Note: Avoid propagating the 'submit' event to the outer sign-in-experience form.
-          event.stopPropagation();
-
-          return onSubmit(event);
-        }}
-      >
-        <div className={style.content}>
-          <table>
-            <thead>
-              <tr>
-                <th>{t('sign_in_exp.others.manage_language.key')}</th>
-                <th>{t('sign_in_exp.others.manage_language.logto_source_values')}</th>
-                <th>
-                  <span className={style.customValuesColumn}>
-                    {t('sign_in_exp.others.manage_language.custom_values')}
+      <div className={styles.container}>
+        <Table
+          isRowHoverEffectDisabled
+          className={styles.content}
+          headerClassName={styles.tableWrapper}
+          bodyClassName={styles.tableWrapper}
+          rowIndexKey="phraseKey"
+          rowGroups={translationEntries.map(([groupKey, value]) => ({
+            key: groupKey,
+            label: groupKey,
+            labelClassName: styles.sectionTitle,
+            data: Object.entries(flattenTranslation(value)).map(([phraseKey, value]) => ({
+              phraseKey,
+              sourceValue: value,
+              fieldKey: `${groupKey}.${phraseKey}`,
+            })),
+          }))}
+          columns={[
+            {
+              title: t('sign_in_exp.others.manage_language.key'),
+              dataIndex: 'phraseKey',
+              render: ({ phraseKey }) => phraseKey,
+              className: styles.sectionDataKey,
+            },
+            {
+              title: t('sign_in_exp.others.manage_language.logto_source_values'),
+              dataIndex: 'sourceValue',
+              render: ({ sourceValue }) => (
+                <div className={styles.sectionBuiltInText}>{sourceValue}</div>
+              ),
+            },
+            {
+              title: (
+                <span className={styles.customValuesColumn}>
+                  {t('sign_in_exp.others.manage_language.custom_values')}
+                  <Tooltip
+                    anchorClassName={styles.clearButton}
+                    content={t('sign_in_exp.others.manage_language.clear_all_tip')}
+                  >
                     <IconButton
                       size="small"
-                      className={style.clearButton}
-                      tooltip={t('sign_in_exp.others.manage_language.clear_all_tip')}
                       onClick={() => {
                         for (const [key, value] of Object.entries(
                           flattenTranslation(emptyUiTranslation)
@@ -198,31 +224,29 @@ const LanguageDetails = () => {
                         }
                       }}
                     >
-                      <Clear className={style.clearIcon} />
+                      <Clear className={styles.clearIcon} />
                     </IconButton>
-                  </span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <FormProvider {...formMethods}>
-                {translationEntries.map(([key, value]) => (
-                  <EditSection key={key} dataKey={key} data={flattenTranslation(value)} />
-                ))}
-              </FormProvider>
-            </tbody>
-          </table>
-        </div>
-        <div className={style.footer}>
+                  </Tooltip>
+                </span>
+              ),
+              dataIndex: 'fieldKey',
+              render: ({ fieldKey }) => (
+                <Textarea className={styles.sectionInputArea} {...register(fieldKey)} />
+              ),
+              className: styles.inputCell,
+            },
+          ]}
+        />
+        <div className={styles.footer}>
           <Button
             isLoading={isSubmitting}
-            htmlType="submit"
             type="primary"
             size="large"
             title="general.save"
+            onClick={async () => onSubmit()}
           />
         </div>
-      </form>
+      </div>
       <ConfirmModal
         isOpen={isDeletionAlertOpen}
         title={
@@ -230,9 +254,7 @@ const LanguageDetails = () => {
             ? 'sign_in_exp.others.manage_language.default_language_deletion_title'
             : 'sign_in_exp.others.manage_language.deletion_title'
         }
-        confirmButtonText={
-          isDefaultLanguage ? 'sign_in_exp.others.manage_language.got_it' : 'general.delete'
-        }
+        confirmButtonText={isDefaultLanguage ? 'general.got_it' : 'general.delete'}
         confirmButtonType={isDefaultLanguage ? 'primary' : 'danger'}
         onCancel={() => {
           setIsDeletionAlertOpen(false);
@@ -247,6 +269,6 @@ const LanguageDetails = () => {
       </ConfirmModal>
     </div>
   );
-};
+}
 
 export default LanguageDetails;

@@ -1,4 +1,4 @@
-import { AppearanceMode } from '@logto/schemas';
+import { Theme } from '@logto/schemas';
 import classNames from 'classnames';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -7,20 +7,20 @@ import TadaDark from '@/assets/images/tada-dark.svg';
 import Tada from '@/assets/images/tada.svg';
 import Dropdown, { DropdownItem } from '@/components/Dropdown';
 import Index from '@/components/Index';
-import { useTheme } from '@/hooks/use-theme';
+import useTheme from '@/hooks/use-theme';
 import useUserPreferences from '@/hooks/use-user-preferences';
-import { onKeyDownHandler } from '@/utilities/a11y';
+import { onKeyDownHandler } from '@/utils/a11y';
 
 import useGetStartedMetadata from '../../hook';
 import * as styles from './index.module.scss';
 
-const GetStartedProgress = () => {
+function GetStartedProgress() {
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
   const {
     data: { getStartedHidden },
   } = useUserPreferences();
   const theme = useTheme();
-  const Icon = theme === AppearanceMode.LightMode ? Tada : TadaDark;
+  const Icon = theme === Theme.Light ? Tada : TadaDark;
   const anchorRef = useRef<HTMLDivElement>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const { data, completedCount, totalCount } = useGetStartedMetadata();
@@ -43,7 +43,7 @@ const GetStartedProgress = () => {
         ref={anchorRef}
         role="button"
         tabIndex={0}
-        className={classNames(styles.container, showDropdown && styles.active)}
+        className={classNames(styles.progress, showDropdown && styles.active)}
         onKeyDown={onKeyDownHandler({
           Esc: hideDropDown,
           Enter: showDropDown,
@@ -68,19 +68,21 @@ const GetStartedProgress = () => {
         titleClassName={styles.dropdownTitle}
         onClose={hideDropDown}
       >
-        {data.map(({ id, title, isComplete, onClick }, index) => (
-          <DropdownItem
-            key={id}
-            className={styles.dropdownItem}
-            icon={<Index className={styles.index} index={index + 1} isComplete={isComplete} />}
-            onClick={onClick}
-          >
-            {t(title)}
-          </DropdownItem>
-        ))}
+        <div className={styles.dropdownItemWrapper}>
+          {data.map(({ id, title, isComplete, onClick }, index) => (
+            <DropdownItem
+              key={id}
+              className={styles.dropdownItem}
+              icon={<Index className={styles.index} index={index + 1} isComplete={isComplete} />}
+              onClick={onClick}
+            >
+              {t(title)}
+            </DropdownItem>
+          ))}
+        </div>
       </Dropdown>
     </>
   );
-};
+}
 
 export default GetStartedProgress;

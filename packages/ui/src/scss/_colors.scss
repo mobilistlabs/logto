@@ -22,6 +22,7 @@
   --color-neutral-100: #fff;
 
   --color-neutral-variant-60: #928f9a;
+  --color-neutral-variant-70: #adaab4;
   --color-neutral-variant-80: #c9c5d0;
   --color-neutral-variant-90: #e5e1ec;
 
@@ -55,6 +56,7 @@
   /* Background */
   --color-bg-body-base: var(--color-neutral-95);
   --color-bg-body: var(--color-neutral-100);
+  --color-bg-layer-1: var(--color-static-white);
   --color-bg-layer-2: var(--color-neutral-95);
   --color-bg-body-overlay: var(--color-neutral-100);
   --color-bg-float-base: var(--color-neutral-variant-90);
@@ -93,6 +95,8 @@
   --color-overlay-brand-hover: rgba(93, 52, 242, 8%); // 8% --color-brand-default
   --color-overlay-brand-pressed: rgba(93, 52, 242, 12%); // 12% --color-brand-default
   --color-overlay-brand-focused: rgba(93, 52, 242, 16%); // 16% --color-brand-default
+
+  --color-surface: var(--color-neutral-99);
 }
 
 @mixin dark {
@@ -108,6 +112,7 @@
   --color-neutral-100: #000;
 
   --color-neutral-variant-60: #928f9a;
+  --color-neutral-variant-70: #78767f;
   --color-neutral-variant-80: #5f5d67;
   --color-neutral-variant-90: #47464e;
 
@@ -133,6 +138,10 @@
     linear-gradient(0deg, rgba(202, 190, 255, 8%), rgba(202, 190, 255, 8%)),
     linear-gradient(0deg, rgba(196, 199, 199, 2%), rgba(196, 199, 199, 2%)),
     #191c1d;
+  --color-surface-3:
+    linear-gradient(0deg, rgba(202, 190, 255, 11%), rgba(202, 190, 255, 11%)),
+    linear-gradient(0deg, rgba(196, 199, 199, 2%), rgba(196, 199, 199, 2%)),
+    #191c1d;
   --color-surface-4:
     linear-gradient(0deg, rgba(202, 190, 255, 14%), rgba(202, 190, 255, 14%)),
     linear-gradient(0deg, rgba(196, 199, 199, 2%), rgba(196, 199, 199, 2%)),
@@ -156,9 +165,13 @@
   --color-bg-body-base: var(--color-neutral-100);
   --color-bg-body: var(--color-surface);
   --color-bg-body-overlay: var(--color-surface-2);
+  --color-bg-layer-1:
+    linear-gradient(0deg, rgba(202, 190, 255, 8%), rgba(202, 190, 255, 8%)),
+    linear-gradient(0deg, rgba(196, 199, 199, 2%), rgba(196, 199, 199, 2%)),
+    #191c1d;
   --color-bg-layer-2: var(--color-surface-4);
   --color-bg-float-base: var(--color-neutral-100);
-  --color-bg-float: var(--color-surface-2);
+  --color-bg-float: var(--color-surface-3);
   --color-bg-float-overlay: var(--color-surface-4);
   --color-bg-mask: rgba(0, 0, 0, 60%); // 60% --color-neutral-100;
   --color-bg-toast: var(--color-neutral-80);

@@ -3,21 +3,28 @@
 .link {
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  display: inline-flex;
+  justify-content: center;
 
+  > svg {
+    margin-right: _.unit(2);
+  }
 
   &.primary {
+    font: var(--font-label-2);
     color: var(--color-brand-default);
     text-decoration: none;
-    font: var(--font-label-2);
 
     &:active {
       color: var(--color-brand-hover);
     }
   }
 
+
   &.secondary {
-    color: var(--color-type-secondary);
-    text-decoration: underline;
+    color: var(--color-type-primary);
+    font: inherit;
+    text-decoration: none;
   }
 }
 

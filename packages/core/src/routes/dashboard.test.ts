@@ -1,26 +1,17 @@
 // The FP version works better for `format()`
 /* eslint-disable import/no-duplicates */
+import { pickDefault } from '@logto/shared/esm';
 import { endOfDay, subDays } from 'date-fns';
 import { format } from 'date-fns/fp';
+
+import { MockTenant } from '#src/test-utils/tenant.js';
+import { createRequester } from '#src/utils/test-utils.js';
 /* eslint-enable import/no-duplicates */
 
-import dashboardRoutes from '#src/routes/dashboard.js';
-import { createRequester } from '#src/utils/test-utils.js';
+const { jest } = import.meta;
 
 const totalUserCount = 1000;
-const countUsers = jest.fn(async () => ({ count: totalUserCount }));
-const getDailyNewUserCountsByTimeInterval = jest.fn(
-  async (startTimeExclusive: number, endTimeInclusive: number) => mockDailyNewUserCounts
-);
 const formatToQueryDate = format('yyyy-MM-dd');
-
-jest.mock('#src/queries/user.js', () => ({
-  countUsers: async () => countUsers(),
-  getDailyNewUserCountsByTimeInterval: async (
-    startTimeExclusive: number,
-    endTimeInclusive: number
-  ) => getDailyNewUserCountsByTimeInterval(startTimeExclusive, endTimeInclusive),
-}));
 
 const mockDailyNewUserCounts = [
   { date: '2022-05-01', count: 1 },
@@ -44,24 +35,23 @@ const mockDailyActiveUserCounts = [
 
 const mockActiveUserCount = 1000;
 
-const getDailyActiveUserCountsByTimeInterval = jest.fn(
-  async (startTimeExclusive: number, endTimeInclusive: number) => mockDailyActiveUserCounts
-);
-const countActiveUsersByTimeInterval = jest.fn(
-  async (startTimeExclusive: number, endTimeInclusive: number) => ({ count: mockActiveUserCount })
-);
+const users = {
+  countUsers: jest.fn(async () => ({ count: totalUserCount })),
+  getDailyNewUserCountsByTimeInterval: jest.fn(async () => mockDailyNewUserCounts),
+};
+const { countUsers, getDailyNewUserCountsByTimeInterval } = users;
 
-jest.mock('#src/queries/log.js', () => ({
-  getDailyActiveUserCountsByTimeInterval: async (
-    startTimeExclusive: number,
-    endTimeInclusive: number
-  ) => getDailyActiveUserCountsByTimeInterval(startTimeExclusive, endTimeInclusive),
-  countActiveUsersByTimeInterval: async (startTimeExclusive: number, endTimeInclusive: number) =>
-    countActiveUsersByTimeInterval(startTimeExclusive, endTimeInclusive),
-}));
+const logs = {
+  getDailyActiveUserCountsByTimeInterval: jest.fn().mockResolvedValue(mockDailyActiveUserCounts),
+  countActiveUsersByTimeInterval: jest.fn().mockResolvedValue({ count: mockActiveUserCount }),
+};
+const { getDailyActiveUserCountsByTimeInterval, countActiveUsersByTimeInterval } = logs;
+
+const tenantContext = new MockTenant(undefined, { logs, users });
+const dashboardRoutes = await pickDefault(import('./dashboard.js'));
 
 describe('dashboardRoutes', () => {
-  const logRequest = createRequester({ authedRoutes: dashboardRoutes });
+  const logRequest = createRequester({ authedRoutes: dashboardRoutes, tenantContext });
 
   afterEach(() => {
     jest.clearAllMocks();

@@ -2,14 +2,49 @@ import type {
   Branding,
   LanguageInfo,
   SignInExperience,
-  TermsOfUse,
   Color,
   SignUp,
   SignIn,
 } from '@logto/schemas';
-import { BrandingStyle, SignInMode, SignUpIdentifier, SignInIdentifier } from '@logto/schemas';
+import { SignInMode, SignInIdentifier } from '@logto/schemas';
+
+export const mockColor: Color = {
+  primaryColor: '#000',
+  isDarkModeEnabled: true,
+  darkPrimaryColor: '#fff',
+};
+
+export const mockBranding: Branding = {
+  logoUrl: 'http://silverhand.png',
+};
+
+export const mockTermsOfUseUrl = 'http://silverhand.com/terms';
+export const mockPrivacyPolicyUrl = 'http://silverhand.com/privacy';
+
+export const mockLanguageInfo: LanguageInfo = {
+  autoDetect: true,
+  fallbackLanguage: 'en',
+};
+
+export const mockSignUp: SignUp = {
+  identifiers: [SignInIdentifier.Username],
+  password: true,
+  verify: false,
+};
+
+export const mockSignInMethod: SignIn['methods'][0] = {
+  identifier: SignInIdentifier.Username,
+  password: true,
+  verificationCode: false,
+  isPasswordPrimary: true,
+};
+
+export const mockSignIn = {
+  methods: [mockSignInMethod],
+};
 
 export const mockSignInExperience: SignInExperience = {
+  tenantId: 'fake_tenant',
   id: 'foo',
   color: {
     primaryColor: '#000',
@@ -17,19 +52,16 @@ export const mockSignInExperience: SignInExperience = {
     darkPrimaryColor: '#fff',
   },
   branding: {
-    style: BrandingStyle.Logo,
     logoUrl: 'http://logto.png',
-    slogan: 'logto',
   },
-  termsOfUse: {
-    enabled: false,
-  },
+  termsOfUseUrl: mockTermsOfUseUrl,
+  privacyPolicyUrl: mockPrivacyPolicyUrl,
   languageInfo: {
     autoDetect: true,
     fallbackLanguage: 'en',
   },
   signUp: {
-    identifier: SignUpIdentifier.Username,
+    identifiers: [SignInIdentifier.Username],
     password: true,
     verify: false,
   },
@@ -48,7 +80,7 @@ export const mockSignInExperience: SignInExperience = {
         isPasswordPrimary: true,
       },
       {
-        identifier: SignInIdentifier.Sms,
+        identifier: SignInIdentifier.Phone,
         password: true,
         verificationCode: true,
         isPasswordPrimary: true,
@@ -57,43 +89,6 @@ export const mockSignInExperience: SignInExperience = {
   },
   socialSignInConnectorTargets: ['github', 'facebook', 'wechat'],
   signInMode: SignInMode.SignInAndRegister,
-};
-
-export const mockColor: Color = {
-  primaryColor: '#000',
-  isDarkModeEnabled: true,
-  darkPrimaryColor: '#fff',
-};
-
-export const mockBranding: Branding = {
-  style: BrandingStyle.Logo_Slogan,
-  logoUrl: 'http://silverhand.png',
-  slogan: 'Silverhand.',
-};
-
-export const mockTermsOfUse: TermsOfUse = {
-  enabled: true,
-  contentUrl: 'http://silverhand.com/terms',
-};
-
-export const mockLanguageInfo: LanguageInfo = {
-  autoDetect: true,
-  fallbackLanguage: 'en',
-};
-
-export const mockSignUp: SignUp = {
-  identifier: SignUpIdentifier.Username,
-  password: true,
-  verify: false,
-};
-
-export const mockSignInMethod: SignIn['methods'][0] = {
-  identifier: SignInIdentifier.Username,
-  password: true,
-  verificationCode: false,
-  isPasswordPrimary: true,
-};
-
-export const mockSignIn = {
-  methods: [mockSignInMethod],
+  customCss: null,
+  customContent: {},
 };

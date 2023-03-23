@@ -1,11 +1,9 @@
 import type { Resource } from '@logto/schemas';
-import { AppearanceMode } from '@logto/schemas';
-import classNames from 'classnames';
-import { useState } from 'react';
+import { Theme } from '@logto/schemas';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import Modal from 'react-modal';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
 
 import ApiResourceDark from '@/assets/images/api-resource-dark.svg';
@@ -14,36 +12,51 @@ import Plus from '@/assets/images/plus.svg';
 import Button from '@/components/Button';
 import CardTitle from '@/components/CardTitle';
 import CopyToClipboard from '@/components/CopyToClipboard';
+import EmptyDataPlaceholder from '@/components/EmptyDataPlaceholder';
 import ItemPreview from '@/components/ItemPreview';
 import Pagination from '@/components/Pagination';
-import TableEmpty from '@/components/Table/TableEmpty';
-import TableError from '@/components/Table/TableError';
-import TableLoading from '@/components/Table/TableLoading';
+import Table from '@/components/Table';
+import { defaultPageSize } from '@/consts';
+import { ApiResourceDetailsTabs } from '@/consts/page-tabs';
 import type { RequestError } from '@/hooks/use-api';
-import { useTheme } from '@/hooks/use-theme';
+import useSearchParametersWatcher from '@/hooks/use-search-parameters-watcher';
+import useTheme from '@/hooks/use-theme';
 import * as modalStyles from '@/scss/modal.module.scss';
 import * as resourcesStyles from '@/scss/resources.module.scss';
-import * as tableStyles from '@/scss/table.module.scss';
+import { withAppInsights } from '@/utils/app-insights';
+import { buildUrl } from '@/utils/url';
 
 import CreateForm from './components/CreateForm';
 import * as styles from './index.module.scss';
 
-const buildDetailsLink = (id: string) => `/api-resources/${id}`;
+const pageSize = defaultPageSize;
+const apiResourcesPathname = '/api-resources';
+const createApiResourcePathname = `${apiResourcesPathname}/create`;
+const buildDetailsPathname = (id: string) =>
+  `${apiResourcesPathname}/${id}/${ApiResourceDetailsTabs.Settings}`;
 
-const pageSize = 20;
-
-const ApiResources = () => {
-  const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
+function ApiResources() {
+  const { pathname, search } = useLocation();
+  const isCreateNew = pathname.endsWith('/create');
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
-  const [query, setQuery] = useSearchParams();
-  const pageIndex = Number(query.get('page') ?? '1');
-  const { data, error, mutate } = useSWR<[Resource[], number], RequestError>(
-    `/api/resources?page=${pageIndex}&page_size=${pageSize}`
-  );
+
+  const [{ page }, updateSearchParameters] = useSearchParametersWatcher({
+    page: 1,
+  });
+
+  const url = buildUrl('api/resources', {
+    page: String(page),
+    page_size: String(pageSize),
+  });
+
+  const { data, error, mutate } = useSWR<[Resource[], number], RequestError>(url);
+
   const isLoading = !data && !error;
   const navigate = useNavigate();
   const theme = useTheme();
   const [apiResources, totalCount] = data ?? [];
+
+  const ResourceIcon = theme === Theme.Light ? ApiResource : ApiResourceDark;
 
   return (
     <div className={resourcesStyles.container}>
@@ -55,101 +68,85 @@ const ApiResources = () => {
           size="large"
           icon={<Plus />}
           onClick={() => {
-            setIsCreateFormOpen(true);
+            navigate({
+              pathname: createApiResourcePathname,
+              search,
+            });
           }}
         />
         <Modal
-          isOpen={isCreateFormOpen}
+          shouldCloseOnEsc
+          isOpen={isCreateNew}
           className={modalStyles.content}
           overlayClassName={modalStyles.overlay}
+          onRequestClose={() => {
+            navigate({
+              pathname: apiResourcesPathname,
+              search,
+            });
+          }}
         >
           <CreateForm
             onClose={(createdApiResource) => {
-              setIsCreateFormOpen(false);
-
               if (createdApiResource) {
                 toast.success(
                   t('api_resources.api_resource_created', { name: createdApiResource.name })
                 );
-                navigate(buildDetailsLink(createdApiResource.id));
+                navigate(buildDetailsPathname(createdApiResource.id), { replace: true });
+
+                return;
               }
+              navigate({
+                pathname: apiResourcesPathname,
+                search,
+              });
             }}
           />
         </Modal>
       </div>
-      <div className={resourcesStyles.table}>
-        <div className={tableStyles.scrollable}>
-          <table className={classNames(!data && tableStyles.empty)}>
-            <colgroup>
-              <col className={styles.apiResourceName} />
-              <col />
-            </colgroup>
-            <thead>
-              <tr>
-                <th>{t('api_resources.api_name')}</th>
-                <th>{t('api_resources.api_identifier')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {!data && error && (
-                <TableError
-                  columns={2}
-                  content={error.body?.message ?? error.message}
-                  onRetry={async () => mutate(undefined, true)}
-                />
-              )}
-              {isLoading && <TableLoading columns={2} />}
-              {apiResources?.length === 0 && (
-                <TableEmpty columns={2}>
-                  <Button
-                    title="api_resources.create"
-                    type="outline"
-                    onClick={() => {
-                      setIsCreateFormOpen(true);
-                    }}
-                  />
-                </TableEmpty>
-              )}
-              {apiResources?.map(({ id, name, indicator }) => {
-                const ResourceIcon =
-                  theme === AppearanceMode.LightMode ? ApiResource : ApiResourceDark;
-
-                return (
-                  <tr
-                    key={id}
-                    className={tableStyles.clickable}
-                    onClick={() => {
-                      navigate(buildDetailsLink(id));
-                    }}
-                  >
-                    <td>
-                      <ItemPreview
-                        title={name}
-                        icon={<ResourceIcon className={styles.icon} />}
-                        to={buildDetailsLink(id)}
-                      />
-                    </td>
-                    <td>
-                      <CopyToClipboard value={indicator} variant="text" />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <Table
+        className={resourcesStyles.table}
+        rowGroups={[{ key: 'apiResources', data: apiResources }]}
+        rowIndexKey="id"
+        isLoading={isLoading}
+        errorMessage={error?.body?.message ?? error?.message}
+        columns={[
+          {
+            title: t('api_resources.api_name'),
+            dataIndex: 'name',
+            colSpan: 6,
+            render: ({ id, name }) => (
+              <ItemPreview
+                title={name}
+                icon={<ResourceIcon className={styles.icon} />}
+                to={buildDetailsPathname(id)}
+              />
+            ),
+          },
+          {
+            title: t('api_resources.api_identifier'),
+            dataIndex: 'indicator',
+            colSpan: 10,
+            render: ({ indicator }) => <CopyToClipboard value={indicator} variant="text" />,
+          },
+        ]}
+        placeholder={<EmptyDataPlaceholder />}
+        rowClickHandler={({ id }) => {
+          navigate(buildDetailsPathname(id));
+        }}
+        onRetry={async () => mutate(undefined, true)}
+      />
       <Pagination
-        pageIndex={pageIndex}
-        totalCount={totalCount ?? 0}
+        page={page}
+        totalCount={totalCount}
         pageSize={pageSize}
         className={styles.pagination}
         onChange={(page) => {
-          setQuery({ page: String(page) });
+          updateSearchParameters({ page });
         }}
       />
     </div>
   );
-};
+}
 
-export default ApiResources;
+export default withAppInsights(ApiResources);

@@ -1,33 +1,13 @@
 @use '@/scss/underscore' as _;
 
-.backLink {
-  margin: _.unit(1) 0 0 _.unit(1);
-}
-
 .header {
-  padding: _.unit(6);
+  padding: _.unit(6) _.unit(8);
   display: flex;
   align-items: center;
   justify-content: space-between;
 
   > *:not(:first-child) {
     margin-left: _.unit(6);
-  }
-
-  .logoContainer {
-    margin-left: _.unit(2);
-    width: 60px;
-    height: 60px;
-    border-radius: 12px;
-    background-color: var(--color-hover);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .logo {
-    width: 42px;
-    height: 42px;
   }
 
   .operations {
@@ -60,12 +40,20 @@
     }
 
     .name {
-      font: var(--font-title-large);
+      font: var(--font-title-1);
       color: var(--color-text);
     }
 
+    .factoryName {
+      background: var(--color-surface-variant);
+      border-radius: 10px;
+      padding: _.unit(0.5) _.unit(2);
+      color: var(--color-text);
+      font: var(--font-label-3);
+    }
+
     .text {
-      font: var(--font-subhead-2);
+      font: var(--font-label-2);
       color: var(--color-text-secondary);
     }
 
@@ -78,10 +66,6 @@
 
 .codeEditor {
   margin-bottom: _.unit(6);
-}
-
-.senderTest {
-  margin-top: _.unit(6);
 }
 
 .resetIcon {

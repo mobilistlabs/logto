@@ -17,6 +17,7 @@ import AppError from '@/components/AppError';
 import Card from '@/components/Card';
 import TextInput from '@/components/TextInput';
 import type { RequestError } from '@/hooks/use-api';
+import { withAppInsights } from '@/utils/app-insights';
 
 import Block from './components/Block';
 import ChartTooltip from './components/ChartTooltip';
@@ -35,16 +36,16 @@ const tickFormatter = new Intl.NumberFormat('en-US', {
   notation: 'compact',
 });
 
-const Dashboard = () => {
+function Dashboard() {
   const [date, setDate] = useState<string>(format(Date.now(), 'yyyy-MM-dd'));
   const { data: totalData, error: totalError } = useSWR<TotalUsersResponse, RequestError>(
-    '/api/dashboard/users/total'
+    'api/dashboard/users/total'
   );
   const { data: newData, error: newError } = useSWR<NewUsersResponse, RequestError>(
-    '/api/dashboard/users/new'
+    'api/dashboard/users/new'
   );
   const { data: activeData, error: activeError } = useSWR<ActiveUsersResponse, RequestError>(
-    `/api/dashboard/users/active?date=${date}`
+    `api/dashboard/users/active?date=${date}`
   );
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
 
@@ -69,18 +70,18 @@ const Dashboard = () => {
           <div className={styles.blocks}>
             <Block
               title="dashboard.total_users"
-              tooltip="dashboard.total_users_tip"
+              tip={t('dashboard.total_users_tip')}
               count={totalData.totalUserCount}
             />
             <Block
               title="dashboard.new_users_today"
-              tooltip="dashboard.new_users_today_tip"
+              tip={t('dashboard.new_users_today_tip')}
               count={newData.today.count}
               delta={newData.today.delta}
             />
             <Block
               title="dashboard.new_users_7_days"
-              tooltip="dashboard.new_users_7_days_tip"
+              tip={t('dashboard.new_users_7_days_tip')}
               count={newData.last7Days.count}
               delta={newData.last7Days.delta}
             />
@@ -88,7 +89,7 @@ const Dashboard = () => {
           <Card className={styles.activeCard}>
             <Block
               title="dashboard.daily_active_users"
-              tooltip="dashboard.daily_active_users_tip"
+              tip={t('dashboard.daily_active_users_tip')}
               count={activeData.dau.count}
               delta={activeData.dau.delta}
               variant="plain"
@@ -130,14 +131,14 @@ const Dashboard = () => {
             <div className={styles.blocks}>
               <Block
                 title="dashboard.weekly_active_users"
-                tooltip="dashboard.weekly_active_users_tip"
+                tip={t('dashboard.weekly_active_users_tip')}
                 count={activeData.wau.count}
                 delta={activeData.wau.delta}
                 variant="bordered"
               />
               <Block
                 title="dashboard.monthly_active_users"
-                tooltip="dashboard.monthly_active_users_tip"
+                tip={t('dashboard.monthly_active_users_tip')}
                 count={activeData.mau.count}
                 delta={activeData.mau.delta}
                 variant="bordered"
@@ -148,6 +149,6 @@ const Dashboard = () => {
       )}
     </div>
   );
-};
+}
 
-export default Dashboard;
+export default withAppInsights(Dashboard);

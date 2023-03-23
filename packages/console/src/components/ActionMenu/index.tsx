@@ -2,7 +2,7 @@ import classNames from 'classnames';
 import type { ReactNode } from 'react';
 import { useRef, useState } from 'react';
 
-import type { HorizontalAlignment } from '@/hooks/use-position';
+import type { HorizontalAlignment } from '@/types/positioning';
 
 import type { Props as ButtonProps } from '../Button';
 import Dropdown from '../Dropdown';
@@ -20,14 +20,14 @@ type Props = {
   isDropdownFullWidth?: boolean;
 };
 
-const ActionMenu = ({
+function ActionMenu({
   children,
   buttonProps,
   title,
   dropdownHorizontalAlign,
   dropdownClassName,
   isDropdownFullWidth = false,
-}: Props) => {
+}: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const anchorReference = useRef<HTMLDivElement>(null);
 
@@ -42,6 +42,7 @@ const ActionMenu = ({
       />
       <Dropdown
         title={title}
+        titleClassName={styles.dropdownTitle}
         anchorRef={anchorReference}
         isOpen={isOpen}
         className={classNames(styles.content, dropdownClassName)}
@@ -55,6 +56,6 @@ const ActionMenu = ({
       </Dropdown>
     </div>
   );
-};
+}
 
 export default ActionMenu;

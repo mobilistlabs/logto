@@ -20,11 +20,11 @@ export type ConfirmModalProps = {
   isOpen: boolean;
   isConfirmButtonDisabled?: boolean;
   isLoading?: boolean;
-  onCancel: () => void;
-  onConfirm: () => void;
+  onCancel?: () => void;
+  onConfirm?: () => void;
 };
 
-const ConfirmModal = ({
+function ConfirmModal({
   children,
   className,
   title = 'general.reminder',
@@ -36,25 +36,29 @@ const ConfirmModal = ({
   isLoading = false,
   onCancel,
   onConfirm,
-}: ConfirmModalProps) => {
+}: ConfirmModalProps) {
   return (
     <ReactModal
+      shouldCloseOnEsc
       isOpen={isOpen}
       className={modalStyles.content}
       overlayClassName={modalStyles.overlay}
+      onRequestClose={onCancel}
     >
       <ModalLayout
         title={title}
         footer={
           <>
-            <Button title={cancelButtonText} onClick={onCancel} />
-            <Button
-              type={confirmButtonType}
-              title={confirmButtonText}
-              disabled={isConfirmButtonDisabled}
-              isLoading={isLoading}
-              onClick={onConfirm}
-            />
+            {onCancel && <Button title={cancelButtonText} onClick={onCancel} />}
+            {onConfirm && (
+              <Button
+                type={confirmButtonType}
+                title={confirmButtonText}
+                disabled={isConfirmButtonDisabled}
+                isLoading={isLoading}
+                onClick={onConfirm}
+              />
+            )}
           </>
         }
         className={classNames(styles.content, className)}
@@ -64,6 +68,6 @@ const ConfirmModal = ({
       </ModalLayout>
     </ReactModal>
   );
-};
+}
 
 export default ConfirmModal;

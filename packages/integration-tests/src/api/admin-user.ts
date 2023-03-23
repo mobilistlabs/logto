@@ -1,13 +1,15 @@
-import type { User } from '@logto/schemas';
+import type { Role, User } from '@logto/schemas';
 
-import { authedAdminApi } from './api';
+import { authedAdminApi } from './api.js';
 
-type CreateUserPayload = {
-  primaryEmail?: string;
+type CreateUserPayload = Partial<{
+  primaryEmail: string;
+  primaryPhone: string;
   username: string;
   password: string;
   name: string;
-};
+  isAdmin: boolean;
+}>;
 
 export const createUser = (payload: CreateUserPayload) =>
   authedAdminApi
@@ -40,3 +42,12 @@ export const updateUserPassword = (userId: string, password: string) =>
 
 export const deleteUserIdentity = (userId: string, connectorTarget: string) =>
   authedAdminApi.delete(`users/${userId}/identities/${connectorTarget}`);
+
+export const assignRolesToUser = (userId: string, roleIds: string[]) =>
+  authedAdminApi.post(`users/${userId}/roles`, { json: { roleIds } });
+
+export const getUserRoles = (userId: string) =>
+  authedAdminApi.get(`users/${userId}/roles`).json<Role[]>();
+
+export const deleteRoleFromUser = (userId: string, roleId: string) =>
+  authedAdminApi.delete(`users/${userId}/roles/${roleId}`);

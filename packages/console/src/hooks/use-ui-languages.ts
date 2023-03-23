@@ -1,5 +1,6 @@
 import type { LanguageTag } from '@logto/language-kit';
 import { builtInLanguages as builtInUiLanguages } from '@logto/phrases-ui';
+import { deduplicate } from '@silverhand/essentials';
 import { useCallback, useMemo } from 'react';
 import useSWR from 'swr';
 
@@ -13,16 +14,14 @@ const useUiLanguages = () => {
     data: customPhraseList,
     error,
     mutate,
-  } = useSWR<CustomPhraseResponse[], RequestError>('/api/custom-phrases');
+  } = useSWR<CustomPhraseResponse[], RequestError>('api/custom-phrases');
 
   const languages = useMemo(
     () =>
-      [
-        ...new Set([
-          ...builtInUiLanguages,
-          ...(customPhraseList?.map(({ languageTag }) => languageTag) ?? []),
-        ]),
-      ]
+      deduplicate([
+        ...builtInUiLanguages,
+        ...(customPhraseList?.map(({ languageTag }) => languageTag) ?? []),
+      ])
         .slice()
         .sort(),
     [customPhraseList]
@@ -32,7 +31,7 @@ const useUiLanguages = () => {
 
   const addLanguage = useCallback(
     async (languageTag: LanguageTag) => {
-      await api.put(`/api/custom-phrases/${languageTag}`, { json: {} });
+      await api.put(`api/custom-phrases/${languageTag}`, { json: {} });
       await mutate();
     },
     [api, mutate]

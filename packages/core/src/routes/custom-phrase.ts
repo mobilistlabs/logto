@@ -1,3 +1,4 @@
+import { generateStandardId } from '@logto/core-kit';
 import { languageTagGuard } from '@logto/language-kit';
 import resource from '@logto/phrases-ui';
 import type { Translation } from '@logto/schemas';
@@ -7,24 +8,29 @@ import { object } from 'zod';
 
 import RequestError from '#src/errors/RequestError/index.js';
 import koaGuard from '#src/middleware/koa-guard.js';
-import {
-  deleteCustomPhraseByLanguageTag,
-  findAllCustomPhrases,
-  findCustomPhraseByLanguageTag,
-  upsertCustomPhrase,
-} from '#src/queries/custom-phrase.js';
-import { findDefaultSignInExperience } from '#src/queries/sign-in-experience.js';
 import assertThat from '#src/utils/assert-that.js';
 import { isStrictlyPartial } from '#src/utils/translation.js';
 
-import type { AuthedRouter } from './types.js';
+import type { AuthedRouter, RouterInitArgs } from './types.js';
 
 const cleanDeepTranslation = (translation: Translation) =>
   // Since `Translation` type actually equals `Partial<Translation>`, force to cast it back to `Translation`.
   // eslint-disable-next-line no-restricted-syntax
   cleanDeep(translation) as Translation;
 
-export default function customPhraseRoutes<T extends AuthedRouter>(router: T) {
+export default function customPhraseRoutes<T extends AuthedRouter>(
+  ...[router, { queries }]: RouterInitArgs<T>
+) {
+  const {
+    customPhrases: {
+      deleteCustomPhraseByLanguageTag,
+      findAllCustomPhrases,
+      findCustomPhraseByLanguageTag,
+      upsertCustomPhrase,
+    },
+    signInExperiences: { findDefaultSignInExperience },
+  } = queries;
+
   router.get(
     '/custom-phrases',
     koaGuard({
@@ -74,7 +80,7 @@ export default function customPhraseRoutes<T extends AuthedRouter>(router: T) {
         new RequestError('localization.invalid_translation_structure')
       );
 
-      ctx.body = await upsertCustomPhrase({ languageTag, translation });
+      ctx.body = await upsertCustomPhrase({ id: generateStandardId(), languageTag, translation });
 
       return next();
     }

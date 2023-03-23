@@ -17,10 +17,11 @@
   overflow: hidden;
   margin-left: _.unit(-6);
   @include _.flex-row;
+  height: 100%;
 
   span {
-    overflow: hidden;
-    text-overflow: ellipsis;
+    @include _.multi-line-ellipsis(2);
+    line-height: _.unit(5);
   }
 
   .placeHolder {
@@ -29,5 +30,11 @@
     &:first-child {
       min-width: _.unit(10);
     }
+  }
+}
+
+:global(body.desktop) {
+  .name span {
+    line-height: _.unit(4);
   }
 }

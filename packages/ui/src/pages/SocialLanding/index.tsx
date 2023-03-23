@@ -1,17 +1,18 @@
 import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 
+import StaticPageLayout from '@/Layout/StaticPageLayout';
 import SocialLandingContainer from '@/containers/SocialLanding';
 import useSocialLandingHandler from '@/hooks/use-social-landing-handler';
 
 import * as styles from './index.module.scss';
 
 type Parameters = {
-  connector: string;
+  connectorId: string;
 };
 
 const SocialLanding = () => {
-  const { connector: connectorId } = useParams<Parameters>();
+  const { connectorId } = useParams<Parameters>();
   const { loading, socialLandingHandler } = useSocialLandingHandler();
 
   // SocialSignIn Callback Handler
@@ -27,13 +28,13 @@ const SocialLanding = () => {
   }
 
   return (
-    <div className={styles.wrapper}>
+    <StaticPageLayout>
       <SocialLandingContainer
         className={styles.connectorContainer}
         connectorId={connectorId}
         isLoading={loading}
       />
-    </div>
+    </StaticPageLayout>
   );
 };
 

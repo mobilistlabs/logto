@@ -1,12 +1,19 @@
-<p align="right">
-  <a href="https://www.producthunt.com/posts/logto?utm_source=badge-featured&utm_medium=badge&utm_souce=badge-logto" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=352638&theme=neutral" alt="Logto | Product Hunt" width="200" /></a>
-</p>
-
 <p align="center">
   <a href="https://logto.io" target="_blank" align="center" alt="Logto Logo">
-    <img src="./logo.png" height="100">
+    <img src="./logo.png" height="120">
   </a>
 </p>
+
+---
+
+<p align="center">
+Logto has launched Cloud (Preview) and OSS General Availability on <a href="https://www.producthunt.com/posts/logto-cloud-preview" target="_blank">Product Hunt</a>.<br/> 
+</p>
+<p align="center">
+😊 Come and support us! We'll see you on the cloud.
+</p>
+
+---
 
 [![discord](https://img.shields.io/discord/965845662535147551?color=5865f2&label=discord)](https://discord.gg/vRvwuwgpVX)
 [![checks](https://img.shields.io/github/checks-status/logto-io/logto/master)](https://github.com/logto-io/logto/actions?query=branch%3Amaster)
@@ -15,23 +22,25 @@
 [![gitpod](https://img.shields.io/badge/gitpod-available-f09439)](https://gitpod.io/#https://github.com/logto-io/demo)
 [![render](https://img.shields.io/badge/render-deploy-5364e9)](https://render.com/deploy?repo=https://github.com/logto-io/logto)
 
-Logto[^info] helps you build the sign-in, auth, and user identity within minutes.
+Logto[^info] is a cost-effective open-source alternative to Auth0. It offers a seamless developer experience and is well-suited for individuals and growing companies.
 
 🧑‍💻 **A frontend-to-backend identity solution**
 
-- A delightful sign-in experience for end-users and an OIDC-based identity service.
-- Web and native SDKs that can integrate your apps with Logto quickly.
+- OIDC-based authentication and RBAC authorization.
+- Passwordless sign in and much more diverse options, including Email, Phone number, Username, Google, Facebook and other social sign in methods.
+- Beautiful UI components with customizable CSS to fit your business needs.
 
-📦 **Out-of-box technology and UI support for many things you needed to code before**
+📦 **Out-of-box infrastructure**
 
-- A centralized place to customize the user interface and then LIVE PREVIEW the changes you make.
-- Social sign-in for multiple platforms (GitHub, Google, WeChat, Alipay, etc.).
-- Dynamic passcode sign-in (via SMS or email).
+- A ready-to-use management API can serve as your authentication provider, eliminating the need for extra implementation.
+- SDKs that can integrate your apps with Logto quickly, multi-platform and language compatible, tailored to your development environment.
+- Flexible connectors, scalable with community contributions, customizable with SMAL, OAuth, and OIDC protocols.
 
-💻 **Fully open-sourced, while no identity knowledge is required to use**
+💻 **Enterprise-ready solutions**
 
-- Super easy tryout (less than 1 min via GitPod, not joking), step-by-step tutorials and decent docs.
-- A full-function web admin console to manage the users, identities, and other things you need within a few clicks.
+- RBAC to control your resource through scalable role authorization for diverse use cases.
+- User management and audit Logs to understand identity related user info and keep your security on track.
+- We are currently working on SSO, Organizations and MFA! Stay tuned!
 
 Boringly, we call it "[customer identity access management](https://en.wikipedia.org/wiki/Customer_identity_access_management)" (CIAM) or "customer identity solution."
 
@@ -40,13 +49,15 @@ Boringly, we call it "[customer identity access management](https://en.wikipedia
 ## Get started
 
 - Visit our 🎨 [website](https://logto.io) for a brief introduction if you are new to Logto.
-- A step-by-step guide is available on 📖 [docs.logto.io](https://docs.logto.io) (also in [简体中文](https://docs.logto.io/zh-cn)).
+- A step-by-step guide is available on 📖 [docs.logto.io](https://docs.logto.io).
+
+### Interactive demo
+
+[![GitPod](https://raw.githubusercontent.com/gitpod-io/gitpod/30da76375c996109f243491b23e47feefab7217f/components/dashboard/public/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/logto-io/demo)
+
+If you launch Logto via GitPod, please wait until you see the message like `App is running at https://3002-...gitpod.io` in the terminal, press Cmd (or Ctrl on Windows) and click the URL starts with `https://3002-` to continue your Logto journey.
 
 ### Launch Logto
-
-#### Online demo (GitPod)
-
-[Click here](https://gitpod.io/#https://github.com/logto-io/demo) to launch Logto via GitPod. Once you see the message like `App is running at https://3001-...gitpod.io` in the terminal, press Cmd (or Ctrl) and click the URL to continue your Logto journey.
 
 #### Docker Compose
 
@@ -54,12 +65,12 @@ Docker Compose CLI usually comes with [Docker Desktop](https://www.docker.com/pr
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/logto-io/logto/HEAD/docker-compose.yml | \
-TAG=prerelease docker compose -p logto -f - up
+docker compose -p logto -f - up
 ```
 
 #### npm-init
 
-Requires [Node.js](https://nodejs.org/) `^16.13.0` + [PostgreSQL](https://postgresql.org/) `^14.0`.
+Requires [Node.js](https://nodejs.org/) `^18.12.0` + [PostgreSQL](https://postgresql.org/) `^14.0`.
 
 ```bash
 npm init @logto
@@ -71,6 +82,14 @@ npm init @logto
 const languages = ['Deutsch', 'English', 'Français', 'Português', '简体中文', 'Türkçe', '한국어'];
 ```
 
+## Web compatibility
+
+Logto uses the [default browserlist config](https://github.com/browserslist/browserslist#full-list) to compile frontend projects, which is:
+
+```
+> 0.5%, last 2 versions, Firefox ESR, not dead
+```
+
 ## Bug report, feature request, feedback
 
 - Our team takes security seriously, especially when it relates to identity. If you find any existing or potential security issues, please do not hesitate to email 🔒 [security@logto.io](mailto:security@logto.io).
@@ -79,15 +98,19 @@ const languages = ['Deutsch', 'English', 'Français', 'Português', '简体中�
   - 💬 [join our Discord server](https://discord.gg/vRvwuwgpVX) to have a live chat;
   - Engage in our 🗓️ [public roadmap](https://silverhand.notion.site/Logto-Public-Roadmap-d6a1ad19039946b7b1139811aed82dcc).
 
+## Licensing
+
+See the [LICENSE](LICENSE) file for licensing information as it pertains to files in this repository.
+
 ## Contributing
 
 We have a [contributing guideline](https://github.com/logto-io/logto/blob/master/.github/CONTRIBUTING.md) available. Feel free to contact us before coding.
 
 ## Resources
 
-- [📖 Logto docs](https://docs.logto.io)
-- [✍️ Silverhand blog](https://silverhand.notion.site/Silverhand-Blog-68e122832cfb413ca8786e08152d00ac)
+- [📖 Logto docs](https://docs.logto.io?utm_source=github)
+- [✍️ Blog](https://docs.logto.io/blog?utm_source=github)
 
 <br/>
 
-[^info]: Licensed with MPL-2.0. Designed by Silverhand Inc.
+[^info]: Designed by Silverhand Inc.

@@ -2,6 +2,16 @@ name: Release
 
 on:
   workflow_dispatch:
+    inputs:
+      target:
+        description: 'The release target of Logto'
+        required: true
+        default: dev
+        type: choice
+        options:
+          - prod
+          - dev
+
   push:
     branches:
       - master
@@ -9,12 +19,16 @@ on:
       - v*.*.*
 
 concurrency:
-  group: dockerize-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
 
 jobs:
-  dockerize:
+  dockerize-core:
     environment: ${{ startsWith(github.ref, 'refs/tags/') && 'release' || '' }}
-    runs-on: ubuntu-latest
+    # Use normal machine for OSS release since we'll build on Depot
+    runs-on: ${{ (inputs.target || 'dev') == 'dev' && 'ubuntu-latest' || 'ubuntu-latest-4-cores' }}
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - uses: actions/checkout@v3
@@ -33,11 +47,8 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
-            type=raw,enable=${{ startsWith(github.ref, 'refs/tags/v') }},value=prerelease
+            type=sha
             type=edge
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
 
       - name: Login to DockerHub
         uses: docker/login-action@v2
@@ -51,40 +62,164 @@ jobs:
           registry: ghcr.io
           username: silverhand-bot
           password: ${{ secrets.BOT_PAT }}
+      
+      - name: Setup Docker Buildx
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: docker/setup-buildx-action@v2
 
       - name: Build and push
-        uses: docker/build-push-action@v3
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: docker/build-push-action@v4
         with:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            additional_connector_args=--cloud
 
-  deploy-dev:
+      - name: Setup Depot
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        uses: depot/setup-action@v1
+
+      - name: Build and push
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        uses: depot/build-push-action@v1
+        with:
+          platforms: linux/amd64, linux/arm64
+          project: g902cp6dvv
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  dockerize-cloud:
+    # Use normal machine for OSS release since we'll build on Depot
+    runs-on: ${{ (inputs.target || 'dev') == 'dev' && 'ubuntu-latest' || 'ubuntu-latest-4-cores' }}
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            ghcr.io/logto-io/cloud
+          # https://github.com/docker/metadata-action
+          tags: |
+            type=sha
+            type=edge
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: silverhand-bot
+          password: ${{ secrets.BOT_PAT }}
+      
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          file: Dockerfile.cloud
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            admin_endpoint=https://auth.logto.${{ inputs.target == 'prod' && 'io' || 'dev' }}/
+            applicationinsights_connection_string=${{ (inputs.target || 'dev') == 'dev' && secrets.APPLICATIONINSIGHTS_CONNECTION_STRING || secrets.APPLICATIONINSIGHTS_CONNECTION_STRING_PROD }}
+
+  deploy-core:
     runs-on: ubuntu-latest
-    needs: dockerize
-    environment: dev
+    needs: dockerize-core
+    environment: ${{ inputs.target || 'dev' }}-core
     if: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
     steps:
+      - uses: actions/checkout@v3
+
+      - name: Set short sha
+        id: sha
+        run: echo "short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Setup Node and pnpm
+        if: ${{ (inputs.target || 'dev') == 'dev' }}
+        uses: silverhand-io/actions-node-pnpm-run-steps@v2
+
+      - name: Deploy database alteration
+        if: ${{ (inputs.target || 'dev') == 'dev' }}
+        run: |
+          pnpm prepack
+          pnpm cli db alt deploy next
+        env:
+          DB_URL: ${{ secrets.DB_URL }}
+
       - name: Login via Azure CLI
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
       
-      - name: Deploy to containerapp
-        uses: azure/CLI@v1
+      - name: Deploy core to containerapp
+        uses: azure/webapps-deploy@v2
         with:
-          inlineScript: |
-            az config set extension.use_dynamic_install=yes_without_prompt
-            az containerapp update -n logto-dev -g LogtoDev --image svhd/logto:edge
+          app-name: ${{ vars.APP_NAME }}
+          slot-name: staging
+          images: ghcr.io/logto-io/logto:sha-${{ steps.sha.outputs.short }}
 
-  release-changesets:
+      - name: Swap core to production
+        # See https://learn.microsoft.com/en-us/cli/azure/webapp/deployment/slot?view=azure-cli-latest#az-webapp-deployment-slot-swap
+        run: az webapp deployment slot swap -g ${{ vars.RESOURCE_GROUP }} -n ${{ vars.APP_NAME }} --slot staging
+
+  deploy-cloud:
+    runs-on: ubuntu-latest
+    needs: dockerize-cloud
+    environment: ${{ inputs.target || 'dev' }}-cloud
+    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set short sha
+        id: sha
+        run: echo "short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+      
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: silverhand-bot
+          password: ${{ secrets.BOT_PAT }}
+
+      - name: Login via Azure CLI
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy cloud to containerapp
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ vars.APP_NAME }}
+          slot-name: staging
+          images: ghcr.io/logto-io/cloud:sha-${{ steps.sha.outputs.short }}
+
+      - name: Swap cloud to production
+        # See https://learn.microsoft.com/en-us/cli/azure/webapp/deployment/slot?view=azure-cli-latest#az-webapp-deployment-slot-swap
+        run: az webapp deployment slot swap -g ${{ vars.RESOURCE_GROUP }} -n ${{ vars.APP_NAME }} --slot staging
+
+  # Publish packages and create git tags if needed
+  publish-and-tag:
     runs-on: ubuntu-latest
     env:
-        NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTOMATION_TOKEN }}
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTOMATION_TOKEN }}
 
     if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
     steps:
       - uses: actions/checkout@v3
         with:
@@ -109,20 +244,8 @@ jobs:
           git config --global user.email bot@silverhand.io
           git config --global user.name silverhand-bot
 
-      - name: Create release pull request
-        uses: changesets/action@v1
-        with:
-          # Use our customized publish flow. See https://github.com/changesets/changesets/issues/833 for the limit of changesets.
-          publish: node .scripts/publish.js
-          # `changeset version` won't run version lifecycle scripts, see https://github.com/changesets/changesets/issues/860
-          version: pnpm ci:version
-          commit: 'release: version packages'
-          title: 'release: version packages'
-          # Create by our rules defined in `/.changeset/README.md`.
-          createGithubReleases: false
-          setupGitUser: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.BOT_PAT }}
+      - name: Publish
+        run: node .scripts/publish.js
 
   create-github-release:
     environment: release
@@ -147,5 +270,6 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           token: ${{ secrets.BOT_PAT }}
-          body: <Release notes WIP>
+          body: ''
           files: /tmp/logto.tar.gz
+          append_body: true

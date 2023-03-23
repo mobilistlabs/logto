@@ -1,3 +1,4 @@
+import type { ConnectorFactoryResponse } from '@logto/schemas';
 import { useTranslation } from 'react-i18next';
 
 import RadioGroup, { Radio } from '@/components/RadioGroup';
@@ -8,12 +9,12 @@ import type { ConnectorGroup } from '@/types/connector';
 import * as styles from './PlatformSelector.module.scss';
 
 type Props = {
-  connectorGroup: ConnectorGroup;
+  connectorGroup: ConnectorGroup<ConnectorFactoryResponse & { added: boolean }>;
   connectorId?: string;
   onConnectorIdChange: (value: string) => void;
 };
 
-const PlatformSelector = ({ connectorGroup, connectorId, onConnectorIdChange }: Props) => {
+function PlatformSelector({ connectorGroup, connectorId, onConnectorIdChange }: Props) {
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
 
   if (connectorGroup.connectors.length <= 1) {
@@ -28,19 +29,19 @@ const PlatformSelector = ({ connectorGroup, connectorId, onConnectorIdChange }: 
       </div>
       <RadioGroup type="plain" name="connector" value={connectorId} onChange={onConnectorIdChange}>
         {connectorGroup.connectors.map(
-          ({ platform, id, enabled }) =>
+          ({ platform, id, added }) =>
             platform && (
               <Radio
                 key={id}
                 value={id}
                 title={connectorPlatformLabel[platform]}
-                isDisabled={enabled}
+                isDisabled={added}
               />
             )
         )}
       </RadioGroup>
     </div>
   );
-};
+}
 
 export default PlatformSelector;

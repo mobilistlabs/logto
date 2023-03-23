@@ -8,10 +8,14 @@ import type { FieldIdentifiers, Table } from './types.js';
 
 export const conditionalSql = <T>(value: T, buildSql: (value: Exclude<T, Falsy>) => SqlSqlToken) =>
   notFalsy(value) ? buildSql(value) : sql``;
+export const conditionalArraySql = <T>(
+  value: T[],
+  buildSql: (value: Exclude<T[], Falsy>) => SqlSqlToken
+) => (value.length > 0 ? buildSql(value) : sql``);
 
-export const autoSetFields = Object.freeze(['createdAt', 'updatedAt'] as const);
-export type OmitAutoSetFields<T> = Omit<T, typeof autoSetFields[number]>;
-export type ExcludeAutoSetFields<T> = Exclude<T, typeof autoSetFields[number]>;
+export const autoSetFields = Object.freeze(['tenantId', 'createdAt', 'updatedAt'] as const);
+export type OmitAutoSetFields<T> = Omit<T, (typeof autoSetFields)[number]>;
+export type ExcludeAutoSetFields<T> = Exclude<T, (typeof autoSetFields)[number]>;
 export const excludeAutoSetFields = <T extends string>(fields: readonly T[]) =>
   Object.freeze(
     fields.filter(
@@ -30,7 +34,7 @@ export const excludeAutoSetFields = <T extends string>(fields: readonly T[]) =>
  * @param value The value to convert.
  * @returns A primitive that can be saved into database.
  */
-// eslint-disable-next-line complexity
+
 export const convertToPrimitiveOrSql = (
   key: string,
   value: NonNullable<SchemaValue> | null

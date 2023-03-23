@@ -1,25 +1,41 @@
+import { noop } from '@silverhand/essentials';
+import dotenv from 'dotenv';
+import { findUp } from 'find-up';
 import Koa from 'koa';
 
-import initApp from './app/init.js';
-import { initConnectors } from './connectors/index.js';
-import { configDotEnv } from './env-set/dot-env.js';
-import envSet from './env-set/index.js';
-import initI18n from './i18n/init.js';
+import { checkAlterationState } from './env-set/check-alteration-state.js';
+import SystemContext from './tenants/SystemContext.js';
 
-// Update after we migrate to ESM
-// eslint-disable-next-line unicorn/prefer-top-level-await
-(async () => {
-  try {
-    await configDotEnv();
-    await envSet.load();
-    const app = new Koa({
-      proxy: envSet.values.trustProxyHeader,
-    });
-    await initConnectors();
-    await initI18n();
-    await initApp(app);
-  } catch (error: unknown) {
-    console.log('Error while initializing app', error);
-    await envSet.poolSafe?.end();
-  }
-})();
+dotenv.config({ path: await findUp('.env', {}) });
+
+const { appInsights } = await import('@logto/shared/app-insights');
+appInsights.setup('logto');
+
+// Import after env has been configured
+const { loadConnectorFactories } = await import('./utils/connectors/index.js');
+const { EnvSet } = await import('./env-set/index.js');
+const { default: initI18n } = await import('./i18n/init.js');
+const { tenantPool, checkRowLevelSecurity } = await import('./tenants/index.js');
+
+try {
+  const app = new Koa({
+    proxy: EnvSet.values.trustProxyHeader,
+  });
+  const sharedAdminPool = await EnvSet.sharedPool;
+  await initI18n();
+  await loadConnectorFactories();
+  await Promise.all([
+    checkRowLevelSecurity(sharedAdminPool),
+    checkAlterationState(sharedAdminPool),
+  ]);
+  await SystemContext.shared.loadStorageProviderConfig(sharedAdminPool);
+
+  // Import last until init completed
+  const { default: initApp } = await import('./app/init.js');
+  await initApp(app);
+} catch (error: unknown) {
+  console.error('Error while initializing app:');
+  console.error(error);
+
+  await tenantPool.endAll().catch(noop);
+}

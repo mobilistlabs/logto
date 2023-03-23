@@ -2,13 +2,17 @@
   "name": "@logto/root",
   "private": true,
   "license": "MPL-2.0",
+  "type": "module",
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "prepare": "if test \"$NODE_ENV\" != \"production\" && test \"$CI\" != \"true\" ; then husky install ; fi",
     "prepack": "pnpm -r prepack",
     "dev": "pnpm -r prepack && pnpm start:dev",
-    "start:dev": "pnpm -r --parallel --filter=!@logto/integration-tests dev",
+    "dev:cloud": "pnpm -r prepack && pnpm start:dev:cloud",
+    "start:dev": "pnpm -r --parallel --filter=!@logto/integration-tests --filter=!@logto/cloud dev",
+    "start:dev:cloud": "CONSOLE_PUBLIC_URL=/ IS_CLOUD=1 pnpm -r --parallel --filter=!@logto/integration-tests dev",
     "start": "cd packages/core && NODE_ENV=production node .",
+    "start:cloud": "cd packages/cloud && NODE_ENV=production node .",
     "cli": "logto",
     "alteration": "logto db alt",
     "//": "# `changeset version` won't run version lifecycle scripts, see https://github.com/changesets/changesets/issues/860",
@@ -23,20 +27,14 @@
     "@commitlint/cli": "^17.0.0",
     "@commitlint/config-conventional": "^17.0.0",
     "@commitlint/types": "^17.0.0",
+    "@types/pg": "^8.6.6",
     "husky": "^8.0.0",
-    "typescript": "^4.7.4"
-  },
-  "workspaces": {
-    "packages": [
-      "packages/*"
-    ],
-    "nohoist": [
-      "**/module-alias"
-    ]
+    "pg": "^8.8.0",
+    "typescript": "^5.0.0"
   },
   "engines": {
-    "node": "^16.13.0 || ^18.12.0",
-    "pnpm": "^7.14.0"
+    "node": "^18.12.0",
+    "pnpm": "^7.22.0"
   },
   "alias": {
     "html-parse-stringify": "html-parse-stringify/dist/html-parse-stringify.module.js",
@@ -47,7 +45,8 @@
     "peerDependencyRules": {
       "allowedVersions": {
         "react": "^18.0.0",
-        "jest": "^29.1.2"
+        "jest": "^29.1.2",
+        "stylelint": "^15.0.0"
       }
     }
   },

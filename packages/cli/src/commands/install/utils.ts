@@ -1,17 +1,17 @@
 import { execSync } from 'child_process';
 import { existsSync } from 'fs';
-import { mkdir } from 'fs/promises';
+import fs from 'fs/promises';
 import os from 'os';
 import path from 'path';
 
 import { assert } from '@silverhand/essentials';
 import chalk from 'chalk';
-import fsExtra from 'fs-extra';
 import inquirer from 'inquirer';
 import * as semver from 'semver';
 import tar from 'tar';
 
 import { createPoolAndDatabaseIfNeeded } from '../../database.js';
+import { packageJson } from '../../package-json.js';
 import {
   cliConfig,
   ConfigKey,
@@ -20,14 +20,14 @@ import {
   log,
   oraPromise,
   safeExecSync,
-} from '../../utilities.js';
+} from '../../utils.js';
 import { seedByPool } from '../database/seed/index.js';
 
 export const defaultPath = path.join(os.homedir(), 'logto');
 const pgRequired = new semver.SemVer('14.0.0');
 
 export const validateNodeVersion = () => {
-  const required = [new semver.SemVer('16.13.0'), new semver.SemVer('18.12.0')];
+  const required = [new semver.SemVer('18.12.0')];
   const requiredVersionString = required.map((version) => '^' + version.version).join(' || ');
   const current = new semver.SemVer(execSync('node -v', { encoding: 'utf8', stdio: 'pipe' }));
 
@@ -102,12 +102,13 @@ export const validateDatabase = async () => {
 
 export const downloadRelease = async (url?: string) => {
   const tarFilePath = path.resolve(os.tmpdir(), './logto.tar.gz');
+  const from =
+    url ??
+    `https://github.com/logto-io/logto/releases/download/v${packageJson.version}/logto.tar.gz`;
 
-  log.info(`Download Logto to ${tarFilePath}`);
-  await downloadFile(
-    url ?? 'https://github.com/logto-io/logto/releases/latest/download/logto.tar.gz',
-    tarFilePath
-  );
+  log.info(`Download Logto from ${from}`);
+  log.info(`Target ${tarFilePath}`);
+  await downloadFile(from, tarFilePath);
 
   return tarFilePath;
 };
@@ -115,7 +116,7 @@ export const downloadRelease = async (url?: string) => {
 export const decompress = async (toPath: string, tarPath: string) => {
   const run = async () => {
     try {
-      await mkdir(toPath);
+      await fs.mkdir(toPath);
       await tar.extract({ file: tarPath, cwd: toPath, strip: 1 });
     } catch (error: unknown) {
       log.error(error);
@@ -132,15 +133,15 @@ export const decompress = async (toPath: string, tarPath: string) => {
   );
 };
 
-export const seedDatabase = async (instancePath: string) => {
+export const seedDatabase = async (instancePath: string, cloud: boolean) => {
   try {
     const pool = await createPoolAndDatabaseIfNeeded();
-    await seedByPool(pool, 'all');
+    await seedByPool(pool);
     await pool.end();
   } catch (error: unknown) {
     console.error(error);
 
-    await oraPromise(fsExtra.remove(instancePath), {
+    await oraPromise(fs.rm(instancePath, { force: true, recursive: true }), {
       text: 'Clean up',
       prefixText: chalk.blue('[info]'),
     });
@@ -156,9 +157,7 @@ export const seedDatabase = async (instancePath: string) => {
 
 export const createEnv = async (instancePath: string, databaseUrl: string) => {
   const dotEnvPath = path.resolve(instancePath, '.env');
-  await fsExtra.writeFile(dotEnvPath, `DB_URL=${databaseUrl}`, {
-    encoding: 'utf8',
-  });
+  await fs.writeFile(dotEnvPath, `DB_URL=${databaseUrl}`, 'utf8');
   log.info(`Saved database URL to ${chalk.blue(dotEnvPath)}`);
 };
 
@@ -167,20 +166,6 @@ export const logFinale = (instancePath: string) => {
   log.info(
     `Use the command below to start Logto. Happy hacking!\n\n  ${chalk.green(startCommand)}`
   );
-};
-
-export const inquireOfficialConnectors = async (initialAnswer?: boolean) => {
-  const { value } = await inquirer.prompt<{ value: boolean }>(
-    {
-      name: 'value',
-      message: 'Do you want to add official connectors?',
-      type: 'confirm',
-      default: true,
-    },
-    { value: initialAnswer }
-  );
-
-  return value;
 };
 
 export const isUrl = (string: string) => {

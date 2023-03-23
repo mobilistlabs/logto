@@ -1,27 +1,32 @@
 const get_started = {
   progress: 'Guia de primeiros passos: {{completed}}/{{total}}',
   progress_dropdown_title: 'Algumas coisas que pode fazer...',
-  title: 'Como deseja começar a usar o Logto?',
+  title: 'Something to explore to help you succeed', // UNTRANSLATED
   subtitle_part1: 'Algumas coisas que pode fazer para obter rapidamente o valor do Logto',
   subtitle_part2: 'Acabei com esta configuração. ',
   hide_this: 'Ocultar isto',
   confirm_message: 'Tem a certeza que deseja ocultar esta página? Esta ação não pode ser desfeita.',
-  card1_title: 'Confira a demonstração',
-  card1_subtitle: 'Experimente a experiência de login do Logto agora para ver como funciona',
-  card2_title: 'Crie e integre a primeira aplicação',
-  card2_subtitle:
-    'Configure um aplicativo móvel, de página única ou tradicional para usar o Logto para autenticação',
-  card3_title: 'Personalize a experiência de login',
-  card3_subtitle:
-    'Personalize a interface de login para corresponder a sua marca e visualize em tempo rea',
-  card4_title: 'Configure um conector de SMS/Email',
-  card4_subtitle:
-    'Experimente o login sem senha com número de telefone ou email para permitir uma experiência do cliente segura e sem atritos',
-  card5_title: 'Adicione um conector social',
-  card5_subtitle: 'Permita que os seus clientes entrem com as identidades sociais em um clique',
-  card6_title: 'Outras leituras',
-  card6_subtitle:
-    'Confira a nossa documentação passo a passo baseados em cenários sem conceitos tediosos',
+  check_preview_title: 'Check the live preview', // UNTRANSLATED
+  check_preview_subtitle:
+    'Experimente a experiência de login do Logto agora para ver como funciona',
+  integration_title: 'Create and integrate your application', // UNTRANSLATED
+  integration_subtitle:
+    'Set up Logto authentication for your native, single page, machine to machine, or traditional application', // UNTRANSLATED
+  custom_sie_title: 'Customize sign-in experience', // UNTRANSLATED
+  custom_sie_subtitle: 'Unlock a vast range of scenarios with advanced settings', // UNTRANSLATED
+  passwordless_title: 'Scale passwordless sign in by adding your own connectors', // UNTRANSLATED
+  passwordless_subtitle:
+    'Try passwordless sign in and enable a secure and frictionless experience for your customer', // UNTRANSLATED
+  community_title: 'Join our discord community', // UNTRANSLATED
+  community_subtitle: 'Join our public channel to chat with other developers', // UNTRANSLATED
+  management_api_title: 'Interact with Management API', // UNTRANSLATED
+  management_api_subtitle: 'Directly connect your authentication system to our management API', // UNTRANSLATED
+  further_readings_title: 'Further readings', // UNTRANSLATED
+  further_readings_subtitle:
+    'Check out our step-by-step, scenario-based docs without tedious concepts', // UNTRANSLATED
+  add_rbac_title: 'Add role-based access control to protect your resources', // UNTRANSLATED
+  add_rbac_subtitle:
+    'Control your resource through scalable role authorization for diverse use cases.', // UNTRANSLATED
 };
 
 export default get_started;

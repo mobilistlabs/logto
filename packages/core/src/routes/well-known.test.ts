@@ -1,9 +1,4 @@
-import { SignInMode } from '@logto/schemas';
-import {
-  adminConsoleApplicationId,
-  adminConsoleSignInExperience,
-} from '@logto/schemas/lib/seeds/index.js';
-import { Provider } from 'oidc-provider';
+import { pickDefault, createMockUtils } from '@logto/shared/esm';
 
 import {
   mockAliyunDmConnector,
@@ -15,50 +10,59 @@ import {
   mockWechatConnector,
   mockWechatNativeConnector,
 } from '#src/__mocks__/index.js';
-import * as signInExperienceQueries from '#src/queries/sign-in-experience.js';
-import wellKnownRoutes from '#src/routes/well-known.js';
-import { createRequester } from '#src/utils/test-utils.js';
+import { wellKnownCache } from '#src/caches/well-known.js';
 
-const getLogtoConnectors = jest.fn(async () => [
-  mockAliyunDmConnector,
-  mockAliyunSmsConnector,
-  mockFacebookConnector,
-  mockGithubConnector,
-  mockGoogleConnector,
-  mockWechatConnector,
-  mockWechatNativeConnector,
-]);
+const { jest } = import.meta;
+const { mockEsm } = createMockUtils(jest);
 
-jest.mock('#src/connectors.js', () => ({
-  getLogtoConnectors: async () => getLogtoConnectors(),
+mockEsm('i18next', () => ({
+  default: {
+    language: 'en',
+    t: (key: string) => key,
+  },
 }));
 
-jest.mock('#src/queries/user.js', () => ({
-  hasActiveUsers: jest.fn().mockResolvedValue(true),
-}));
+const sieQueries = {
+  updateDefaultSignInExperience: jest.fn(),
+  findDefaultSignInExperience: jest.fn().mockResolvedValue(mockSignInExperience),
+};
+const { findDefaultSignInExperience } = sieQueries;
 
-const interactionDetails: jest.MockedFunction<() => Promise<unknown>> = jest.fn(async () => ({
-  params: {},
-}));
+const wellKnownRoutes = await pickDefault(import('#src/routes/well-known.js'));
+const { createMockProvider } = await import('#src/test-utils/oidc-provider.js');
+const { MockTenant } = await import('#src/test-utils/tenant.js');
+const { createRequester } = await import('#src/utils/test-utils.js');
 
-jest.mock('oidc-provider', () => ({
-  Provider: jest.fn(() => ({
-    interactionDetails,
-  })),
-}));
-
-jest.mock('i18next', () => ({
-  t: (key: string) => key,
-}));
+const provider = createMockProvider();
+const getLogtoConnectors = jest.fn(async () => {
+  return [
+    mockAliyunDmConnector,
+    mockAliyunSmsConnector,
+    mockFacebookConnector,
+    mockGithubConnector,
+    mockGoogleConnector,
+    mockWechatConnector,
+    mockWechatNativeConnector,
+  ];
+});
+const tenantContext = new MockTenant(
+  provider,
+  {
+    signInExperiences: sieQueries,
+    users: { hasActiveUsers: jest.fn().mockResolvedValue(true) },
+  },
+  { getLogtoConnectors }
+);
 
 describe('GET /.well-known/sign-in-exp', () => {
   afterEach(() => {
+    wellKnownCache.invalidateAll(tenantContext.id);
     jest.clearAllMocks();
   });
 
   const sessionRequest = createRequester({
     anonymousRoutes: wellKnownRoutes,
-    provider: new Provider(''),
+    tenantContext,
     middlewares: [
       async (ctx, next) => {
         ctx.addLogContext = jest.fn();
@@ -69,13 +73,9 @@ describe('GET /.well-known/sign-in-exp', () => {
     ],
   });
 
-  const signInExperienceQuerySpyOn = jest
-    .spyOn(signInExperienceQueries, 'findDefaultSignInExperience')
-    .mockResolvedValue(mockSignInExperience);
-
   it('should return github and facebook connector instances', async () => {
     const response = await sessionRequest.get('/.well-known/sign-in-exp');
-    expect(signInExperienceQuerySpyOn).toHaveBeenCalledTimes(1);
+    expect(findDefaultSignInExperience).toHaveBeenCalledTimes(1);
     expect(response.status).toEqual(200);
     expect(response.body).toMatchObject({
       ...mockSignInExperience,
@@ -100,20 +100,15 @@ describe('GET /.well-known/sign-in-exp', () => {
     });
   });
 
-  it('should return admin console settings', async () => {
-    interactionDetails.mockResolvedValue({ params: { client_id: adminConsoleApplicationId } });
-    const response = await sessionRequest.get('/.well-known/sign-in-exp');
-    expect(response.status).toEqual(200);
-
-    expect(response.body).toMatchObject({
-      ...adminConsoleSignInExperience,
-      branding: {
-        ...adminConsoleSignInExperience.branding,
-        slogan: 'admin_console.welcome.title',
-      },
-      languageInfo: mockSignInExperience.languageInfo,
-      socialConnectors: [],
-      signInMode: SignInMode.SignIn,
-    });
+  it('should use cache for continuous requests', async () => {
+    const [response1, response2, response3] = await Promise.all([
+      sessionRequest.get('/.well-known/sign-in-exp'),
+      sessionRequest.get('/.well-known/sign-in-exp'),
+      sessionRequest.get('/.well-known/sign-in-exp'),
+    ]);
+    expect(findDefaultSignInExperience).toHaveBeenCalledTimes(1);
+    expect(getLogtoConnectors).toHaveBeenCalledTimes(1);
+    expect(response1.body).toStrictEqual(response2.body);
+    expect(response2.body).toStrictEqual(response3.body);
   });
 });

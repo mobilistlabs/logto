@@ -1,88 +1,53 @@
 import type { Resource } from '@logto/schemas';
-import { AppearanceMode } from '@logto/schemas';
-import { managementResource } from '@logto/schemas/lib/seeds';
+import { isManagementApi, Theme } from '@logto/schemas';
+import classNames from 'classnames';
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { Trans, useTranslation } from 'react-i18next';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 
 import ApiResourceDark from '@/assets/images/api-resource-dark.svg';
 import ApiResource from '@/assets/images/api-resource.svg';
-import Back from '@/assets/images/back.svg';
 import Delete from '@/assets/images/delete.svg';
 import More from '@/assets/images/more.svg';
 import ActionMenu, { ActionMenuItem } from '@/components/ActionMenu';
 import Card from '@/components/Card';
 import CopyToClipboard from '@/components/CopyToClipboard';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
-import DetailsForm from '@/components/DetailsForm';
-import DetailsSkeleton from '@/components/DetailsSkeleton';
-import FormCard from '@/components/FormCard';
-import FormField from '@/components/FormField';
-import LinkButton from '@/components/LinkButton';
+import DetailsPage from '@/components/DetailsPage';
 import TabNav, { TabNavItem } from '@/components/TabNav';
-import TextInput from '@/components/TextInput';
-import UnsavedChangesAlertModal from '@/components/UnsavedChangesAlertModal';
+import { ApiResourceDetailsTabs } from '@/consts/page-tabs';
 import type { RequestError } from '@/hooks/use-api';
 import useApi from '@/hooks/use-api';
-import { useTheme } from '@/hooks/use-theme';
-import * as detailsStyles from '@/scss/details.module.scss';
+import useTheme from '@/hooks/use-theme';
+import { withAppInsights } from '@/utils/app-insights';
 
 import * as styles from './index.module.scss';
+import { ApiResourceDetailsOutletContext } from './types';
 
-type FormData = {
-  name: string;
-  accessTokenTtl: number;
-};
-
-const ApiResourceDetails = () => {
-  const location = useLocation();
+function ApiResourceDetails() {
+  const { pathname } = useLocation();
   const { id } = useParams();
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
   const navigate = useNavigate();
-  const { data, error, mutate } = useSWR<Resource, RequestError>(id && `/api/resources/${id}`);
+  const { data, error, mutate } = useSWR<Resource, RequestError>(id && `api/resources/${id}`);
   const isLoading = !data && !error;
   const theme = useTheme();
-  const Icon = theme === AppearanceMode.LightMode ? ApiResource : ApiResourceDark;
+  const Icon = theme === Theme.Light ? ApiResource : ApiResourceDark;
 
-  const isLogtoManagementApiResource = data?.id === managementResource.id;
-
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isDeleted, setIsDeleted] = useState(false);
-
-  const {
-    handleSubmit,
-    register,
-    reset,
-    formState: { isDirty, isSubmitting, errors },
-  } = useForm<FormData>({
-    defaultValues: data,
-  });
-
-  const api = useApi();
+  const isOnPermissionPage = pathname.endsWith(ApiResourceDetailsTabs.Permissions);
+  const isLogtoManagementApiResource = isManagementApi(data?.indicator ?? '');
 
   const [isDeleteFormOpen, setIsDeleteFormOpen] = useState(false);
 
   useEffect(() => {
-    if (!data) {
-      return;
-    }
-    reset(data);
-  }, [data, reset]);
+    setIsDeleteFormOpen(false);
+  }, [pathname]);
 
-  const onSubmit = handleSubmit(async (formData) => {
-    if (!data || isSubmitting) {
-      return;
-    }
+  const [isDeleting, setIsDeleting] = useState(false);
 
-    const updatedApiResource = await api
-      .patch(`/api/resources/${data.id}`, { json: formData })
-      .json<Resource>();
-    void mutate(updatedApiResource);
-    toast.success(t('general.saved'));
-  });
+  const api = useApi();
 
   const onDelete = async () => {
     if (!data || isDeleting) {
@@ -92,27 +57,23 @@ const ApiResourceDetails = () => {
     setIsDeleting(true);
 
     try {
-      await api.delete(`/api/resources/${data.id}`);
-      setIsDeleted(true);
-      setIsDeleting(false);
-      setIsDeleteFormOpen(false);
+      await api.delete(`api/resources/${data.id}`);
       toast.success(t('api_resource_details.api_resource_deleted', { name: data.name }));
       navigate(`/api-resources`);
-    } catch {
+    } finally {
       setIsDeleting(false);
     }
   };
 
   return (
-    <div className={detailsStyles.container}>
-      <LinkButton
-        to="/api-resources"
-        icon={<Back />}
-        title="api_resource_details.back_to_api_resources"
-        className={styles.backLink}
-      />
-      {isLoading && <DetailsSkeleton />}
-      {!data && error && <div>{`error occurred: ${error.body?.message ?? error.message}`}</div>}
+    <DetailsPage
+      backLink="/api-resources"
+      backLinkTitle="api_resource_details.back_to_api_resources"
+      isLoading={isLoading}
+      error={error}
+      className={classNames(isOnPermissionPage && styles.permissionPage)}
+      onRetry={mutate}
+    >
       {data && (
         <>
           <Card className={styles.header}>
@@ -120,7 +81,7 @@ const ApiResourceDetails = () => {
               <Icon className={styles.icon} />
               <div className={styles.meta}>
                 <div className={styles.name}>{data.name}</div>
-                <CopyToClipboard value={data.indicator} />
+                <CopyToClipboard size="small" value={data.indicator} />
               </div>
             </div>
             {!isLogtoManagementApiResource && (
@@ -160,43 +121,29 @@ const ApiResourceDetails = () => {
             )}
           </Card>
           <TabNav>
-            <TabNavItem href={location.pathname}>{t('general.settings_nav')}</TabNavItem>
+            <TabNavItem href={`/api-resources/${data.id}/${ApiResourceDetailsTabs.Settings}`}>
+              {t('api_resource_details.settings_tab')}
+            </TabNavItem>
+            <TabNavItem href={`/api-resources/${data.id}/${ApiResourceDetailsTabs.Permissions}`}>
+              {t('api_resource_details.permissions_tab')}
+            </TabNavItem>
           </TabNav>
-          <DetailsForm
-            isDirty={isDirty}
-            isSubmitting={isSubmitting}
-            onDiscard={reset}
-            onSubmit={onSubmit}
-          >
-            <FormCard
-              title="api_resource_details.settings"
-              description="api_resource_details.settings_description"
-              learnMoreLink="https://docs.logto.io/docs/recipes/protect-your-api"
-            >
-              <FormField isRequired title="api_resources.api_name">
-                <TextInput
-                  {...register('name', { required: true })}
-                  hasError={Boolean(errors.name)}
-                  readOnly={isLogtoManagementApiResource}
-                  placeholder={t('api_resources.api_name_placeholder')}
-                />
-              </FormField>
-              <FormField isRequired title="api_resource_details.token_expiration_time_in_seconds">
-                <TextInput
-                  {...register('accessTokenTtl', { required: true, valueAsNumber: true })}
-                  hasError={Boolean(errors.accessTokenTtl)}
-                  placeholder={t(
-                    'api_resource_details.token_expiration_time_in_seconds_placeholder'
-                  )}
-                />
-              </FormField>
-            </FormCard>
-          </DetailsForm>
+          <Outlet
+            context={
+              {
+                resource: data,
+                isDeleting,
+                isLogtoManagementApiResource,
+                onResourceUpdated: (resource: Resource) => {
+                  void mutate(resource);
+                },
+              } satisfies ApiResourceDetailsOutletContext
+            }
+          />
         </>
       )}
-      <UnsavedChangesAlertModal hasUnsavedChanges={!isDeleted && isDirty} />
-    </div>
+    </DetailsPage>
   );
-};
+}
 
-export default ApiResourceDetails;
+export default withAppInsights(ApiResourceDetails);

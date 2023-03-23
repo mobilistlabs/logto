@@ -1,81 +1,100 @@
 import fs from 'fs/promises';
-import https from 'https';
+import http2 from 'http2';
 
+import { appInsights } from '@logto/shared/app-insights';
+import { toTitle, trySafe } from '@silverhand/essentials';
 import chalk from 'chalk';
 import type Koa from 'koa';
-import compose from 'koa-compose';
-import koaLogger from 'koa-logger';
-import mount from 'koa-mount';
 
-import envSet, { MountedApps } from '#src/env-set/index.js';
-import koaCheckDemoApp from '#src/middleware/koa-check-demo-app.js';
-import koaConnectorErrorHandler from '#src/middleware/koa-connector-error-handler.js';
-import koaErrorHandler from '#src/middleware/koa-error-handler.js';
-import koaI18next from '#src/middleware/koa-i18next.js';
-import koaLog from '#src/middleware/koa-log.js';
-import koaOIDCErrorHandler from '#src/middleware/koa-oidc-error-handler.js';
-import koaRootProxy from '#src/middleware/koa-root-proxy.js';
-import koaSlonikErrorHandler from '#src/middleware/koa-slonik-error-handler.js';
-import koaSpaProxy from '#src/middleware/koa-spa-proxy.js';
-import koaSpaSessionGuard from '#src/middleware/koa-spa-session-guard.js';
-import koaWelcomeProxy from '#src/middleware/koa-welcome-proxy.js';
-import initOidc from '#src/oidc/init.js';
-import initRouter from '#src/routes/init.js';
+import { EnvSet } from '#src/env-set/index.js';
+import { TenantNotFoundError, tenantPool } from '#src/tenants/index.js';
+import { getTenantId } from '#src/utils/tenant.js';
 
-const logListening = () => {
-  const { localhostUrl, endpoint } = envSet.values;
+const logListening = (type: 'core' | 'admin' = 'core') => {
+  const urlSet = type === 'core' ? EnvSet.values.urlSet : EnvSet.values.adminUrlSet;
 
-  for (const url of new Set([localhostUrl, endpoint])) {
-    console.log(chalk.bold(chalk.green(`App is running at ${url}`)));
+  for (const url of urlSet.deduplicated()) {
+    console.log(chalk.bold(chalk.green(`${toTitle(type)} app is running at ${url.toString()}`)));
   }
 };
 
+const serverTimeout = 120_000;
+
 export default async function initApp(app: Koa): Promise<void> {
-  app.use(koaErrorHandler());
-  app.use(koaOIDCErrorHandler());
-  app.use(koaSlonikErrorHandler());
-  app.use(koaConnectorErrorHandler());
+  app.use(async (ctx, next) => {
+    if (EnvSet.values.isDomainBasedMultiTenancy && ['/status', '/'].includes(ctx.URL.pathname)) {
+      ctx.status = 204;
 
-  app.use(koaLog());
-  app.use(koaLogger());
-  app.use(koaI18next());
+      return next();
+    }
 
-  const provider = await initOidc(app);
-  initRouter(app, provider);
+    const tenantId = getTenantId(ctx.URL);
 
-  app.use(mount('/', koaRootProxy()));
+    if (!tenantId) {
+      ctx.status = 404;
 
-  app.use(mount('/' + MountedApps.Welcome, koaWelcomeProxy()));
+      return next();
+    }
 
-  app.use(
-    mount('/' + MountedApps.Console, koaSpaProxy(MountedApps.Console, 5002, MountedApps.Console))
-  );
+    const tenant = await trySafe(tenantPool.get(tenantId), (error) => {
+      ctx.status = error instanceof TenantNotFoundError ? 404 : 500;
+      appInsights.trackException(error);
+    });
 
-  app.use(
-    mount(
-      '/' + MountedApps.DemoApp,
-      compose([koaCheckDemoApp(), koaSpaProxy(MountedApps.DemoApp, 5003, MountedApps.DemoApp)])
-    )
-  );
+    if (!tenant) {
+      return next();
+    }
 
-  app.use(compose([koaSpaSessionGuard(provider), koaSpaProxy()]));
+    try {
+      tenant.requestStart();
+      await tenant.run(ctx, next);
+      tenant.requestEnd();
+    } catch (error: unknown) {
+      tenant.requestEnd();
+      appInsights.trackException(error);
 
-  const { isHttpsEnabled, httpsCert, httpsKey, port } = envSet.values;
+      throw error;
+    }
+  });
+
+  const { isHttpsEnabled, httpsCert, httpsKey, urlSet, adminUrlSet } = EnvSet.values;
 
   if (isHttpsEnabled && httpsCert && httpsKey) {
-    https
-      .createServer(
+    const createHttp2Server = async () =>
+      http2.createSecureServer(
         { cert: await fs.readFile(httpsCert), key: await fs.readFile(httpsKey) },
         app.callback()
-      )
-      .listen(port, () => {
-        logListening();
+      );
+
+    const coreServer = await createHttp2Server();
+    coreServer.listen(urlSet.port, () => {
+      logListening();
+    });
+    coreServer.setTimeout(serverTimeout);
+
+    // Create another server if admin localhost enabled
+    if (!adminUrlSet.isLocalhostDisabled) {
+      const adminServer = await createHttp2Server();
+      adminServer.listen(adminUrlSet.port, () => {
+        logListening('admin');
       });
+      adminServer.setTimeout(serverTimeout);
+    }
 
     return;
   }
 
-  app.listen(port, () => {
+  // Chrome doesn't allow insecure HTTP/2 servers, stick with HTTP for localhost.
+  const coreServer = app.listen(urlSet.port, () => {
     logListening();
   });
+  coreServer.setTimeout(serverTimeout);
+
+  // Create another server if admin localhost enabled
+  if (!adminUrlSet.isLocalhostDisabled) {
+    const adminServer = app.listen(adminUrlSet.port, () => {
+      logListening('admin');
+    });
+    adminServer.setTimeout(serverTimeout);
+  }
 }

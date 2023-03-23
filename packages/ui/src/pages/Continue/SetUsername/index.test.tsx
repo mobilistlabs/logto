@@ -2,29 +2,35 @@ import { act, waitFor, fireEvent } from '@testing-library/react';
 
 import renderWithPageContext from '@/__mocks__/RenderWithPageContext';
 import SettingsProvider from '@/__mocks__/RenderWithPageContext/SettingsProvider';
-import { continueApi } from '@/apis/continue';
+import { addProfile } from '@/apis/interaction';
 
 import SetUsername from '.';
 
 const mockedNavigate = jest.fn();
+
+// PhoneNum CountryCode detection
+jest.mock('i18next', () => ({
+  language: 'en',
+  t: (key: string) => key,
+}));
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useNavigate: () => mockedNavigate,
 }));
 
-jest.mock('@/apis/continue', () => ({
-  continueApi: jest.fn(async () => ({ redirectTo: '/' })),
+jest.mock('@/apis/interaction', () => ({
+  addProfile: jest.fn(async () => ({ redirectTo: '/' })),
 }));
 
-describe('SetPassword', () => {
-  it('render set-password page properly', () => {
+describe('SetUsername', () => {
+  it('render SetUsername page properly', () => {
     const { queryByText, container } = renderWithPageContext(
       <SettingsProvider>
         <SetUsername />
       </SettingsProvider>
     );
-    expect(container.querySelector('input[name="new-username"]')).not.toBeNull();
+    expect(container.querySelector('input[name="identifier"]')).not.toBeNull();
     expect(queryByText('action.continue')).not.toBeNull();
   });
 
@@ -35,7 +41,7 @@ describe('SetPassword', () => {
       </SettingsProvider>
     );
     const submitButton = getByText('action.continue');
-    const usernameInput = container.querySelector('input[name="new-username"]');
+    const usernameInput = container.querySelector('input[name="identifier"]');
 
     act(() => {
       if (usernameInput) {
@@ -46,7 +52,7 @@ describe('SetPassword', () => {
     });
 
     await waitFor(() => {
-      expect(continueApi).toBeCalledWith('username', 'username', undefined);
+      expect(addProfile).toBeCalledWith({ username: 'username' });
     });
   });
 });

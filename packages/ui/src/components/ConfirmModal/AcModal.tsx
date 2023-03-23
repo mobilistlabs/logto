@@ -18,6 +18,8 @@ const AcModal = ({
   children,
   cancelText = 'action.cancel',
   confirmText = 'action.confirm',
+  confirmTextI18nProps,
+  cancelTextI18nProps,
   onConfirm,
   onClose,
 }: ModalProps) => {
@@ -27,13 +29,13 @@ const AcModal = ({
 
   return (
     <ReactModal
-      role="dialog"
       isOpen={isOpen}
       className={classNames(styles.modal, className)}
       overlayClassName={classNames(modalStyles.overlay, styles.overlay)}
       onAfterOpen={() => {
         contentRef.current?.focus();
       }}
+      onRequestClose={onClose}
     >
       <div
         ref={contentRef}
@@ -54,8 +56,21 @@ const AcModal = ({
         </div>
         <div className={styles.content}>{children}</div>
         <div className={styles.footer}>
-          <Button title={cancelText} type="secondary" size="small" onClick={onClose} />
-          {onConfirm && <Button title={confirmText} size="small" onClick={onConfirm} />}
+          <Button
+            title={cancelText}
+            type="secondary"
+            i18nProps={cancelTextI18nProps}
+            size="small"
+            onClick={onClose}
+          />
+          {onConfirm && (
+            <Button
+              title={confirmText}
+              i18nProps={confirmTextI18nProps}
+              size="small"
+              onClick={onConfirm}
+            />
+          )}
         </div>
       </div>
     </ReactModal>

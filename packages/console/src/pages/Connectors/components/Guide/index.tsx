@@ -1,131 +1,245 @@
+import { generateStandardId } from '@logto/core-kit';
 import { isLanguageTag } from '@logto/language-kit';
-import type { ConnectorResponse } from '@logto/schemas';
+import type { ConnectorFactoryResponse, ConnectorResponse, RequestErrorBody } from '@logto/schemas';
 import { ConnectorType } from '@logto/schemas';
 import { conditional } from '@silverhand/essentials';
 import i18next from 'i18next';
-import { Controller, useForm } from 'react-hook-form';
+import { HTTPError } from 'ky';
+import { useEffect, useRef, useState } from 'react';
+import { FormProvider, useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import Modal from 'react-modal';
+import { useNavigate } from 'react-router-dom';
 
 import Close from '@/assets/images/close.svg';
+import Button from '@/components/Button';
 import CardTitle from '@/components/CardTitle';
-import CodeEditor from '@/components/CodeEditor';
 import DangerousRaw from '@/components/DangerousRaw';
 import IconButton from '@/components/IconButton';
 import Markdown from '@/components/Markdown';
+import OverlayScrollbar from '@/components/OverlayScrollbar';
+import { ConnectorsTabs } from '@/consts/page-tabs';
 import useApi from '@/hooks/use-api';
-import useSettings from '@/hooks/use-settings';
-import Step from '@/mdx-components/Step';
+import useConfigs from '@/hooks/use-configs';
 import SenderTester from '@/pages/ConnectorDetails/components/SenderTester';
-import type { GuideForm } from '@/types/guide';
-import { safeParseJson } from '@/utilities/json';
+import * as modalStyles from '@/scss/modal.module.scss';
 
+import type { ConnectorFormType } from '../../types';
+import { SyncProfileMode } from '../../types';
+import { splitMarkdownByTitle } from '../../utils';
+import BasicForm from '../ConnectorForm/BasicForm';
+import ConfigForm from '../ConnectorForm/ConfigForm';
+import { useConnectorFormConfigParser } from '../ConnectorForm/hooks';
+import { initFormData } from '../ConnectorForm/utils';
 import * as styles from './index.module.scss';
 
+const targetErrorCode = 'connector.multiple_target_with_same_platform';
+
 type Props = {
-  connector: ConnectorResponse;
-  onClose: () => void;
+  connector?: ConnectorFactoryResponse;
+  onClose: (id?: string) => void;
 };
 
-const Guide = ({ connector, onClose }: Props) => {
-  const api = useApi();
-  const { updateSettings } = useSettings();
+function Guide({ connector, onClose }: Props) {
+  const api = useApi({ hideErrorToast: true });
+  const navigate = useNavigate();
+  const callbackConnectorId = useRef(generateStandardId());
+  const { updateConfigs } = useConfigs();
+  const [conflictConnectorName, setConflictConnectorName] = useState<Record<string, string>>();
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
-  const { id: connectorId, type: connectorType, name, configTemplate, readme } = connector;
+  const { type: connectorType, formItems, target, isStandard, configTemplate } = connector ?? {};
   const { language } = i18next;
-  const connectorName = conditional(isLanguageTag(language) && name[language]) ?? name.en;
+
   const isSocialConnector =
     connectorType !== ConnectorType.Sms && connectorType !== ConnectorType.Email;
-  const methods = useForm<GuideForm>({ reValidateMode: 'onBlur' });
+  const methods = useForm<ConnectorFormType>({
+    reValidateMode: 'onBlur',
+  });
   const {
-    control,
     formState: { isSubmitting },
     handleSubmit,
     watch,
+    setError,
+    reset,
   } = methods;
 
-  const onSubmit = handleSubmit(async ({ connectorConfigJson }) => {
+  useEffect(() => {
+    reset({
+      ...(formItems ? initFormData(formItems) : {}),
+      ...(configTemplate ? { config: configTemplate } : {}),
+      ...(isSocialConnector && !isStandard && target ? { target } : {}),
+      syncProfile: SyncProfileMode.OnlyAtRegister,
+    });
+  }, [formItems, reset, configTemplate, target, isSocialConnector, isStandard]);
+
+  const configParser = useConnectorFormConfigParser();
+
+  useEffect(() => {
+    setConflictConnectorName(undefined);
+  }, [connector]);
+
+  if (!connector) {
+    return null;
+  }
+
+  const { id: connectorId, name, readme } = connector;
+  const { title, content } = splitMarkdownByTitle(readme);
+  const connectorName = conditional(isLanguageTag(language) && name[language]) ?? name.en;
+
+  const onSubmit = handleSubmit(async (data) => {
     if (isSubmitting) {
       return;
     }
 
-    const result = safeParseJson(connectorConfigJson);
+    // Recover error state
+    setConflictConnectorName(undefined);
 
-    if (!result.success) {
-      toast.error(result.error);
+    const config = configParser(data, formItems);
 
-      return;
+    const { syncProfile, name, logo, logoDark, target } = data;
+
+    const basePayload = {
+      config,
+      connectorId,
+      id: conditional(connectorType === ConnectorType.Social && callbackConnectorId.current),
+      metadata: conditional(
+        isStandard && {
+          logo,
+          logoDark,
+          target,
+          name: { en: name },
+        }
+      ),
+    };
+
+    const payload = isSocialConnector
+      ? { ...basePayload, syncProfile: syncProfile === SyncProfileMode.EachSignIn }
+      : basePayload;
+
+    try {
+      const createdConnector = await api
+        .post('api/connectors', {
+          json: payload,
+        })
+        .json<ConnectorResponse>();
+
+      await updateConfigs({
+        ...conditional(!isSocialConnector && { passwordlessConfigured: true }),
+      });
+
+      onClose();
+      toast.success(t('general.saved'));
+      navigate(
+        `/connectors/${isSocialConnector ? ConnectorsTabs.Social : ConnectorsTabs.Passwordless}/${
+          createdConnector.id
+        }`
+      );
+    } catch (error: unknown) {
+      if (error instanceof HTTPError) {
+        const { response } = error;
+        const metadata = await response.json<
+          RequestErrorBody<{ connectorName: Record<string, string> }>
+        >();
+
+        if (metadata.code === targetErrorCode) {
+          setConflictConnectorName(metadata.data.connectorName);
+          setError('target', {}, { shouldFocus: true });
+
+          return;
+        }
+      }
+
+      throw error;
     }
-
-    await api
-      .patch(`/api/connectors/${connectorId}`, { json: { config: result.data } })
-      .json<ConnectorResponse>();
-    await api
-      .patch(`/api/connectors/${connectorId}/enabled`, { json: { enabled: true } })
-      .json<ConnectorResponse>();
-
-    await updateSettings({
-      ...conditional(!isSocialConnector && { passwordlessConfigured: true }),
-      ...conditional(isSocialConnector && { socialSignInConfigured: true }),
-    });
-
-    onClose();
-    toast.success(t('general.saved'));
   });
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <IconButton size="large" onClick={onClose}>
-          <Close className={styles.closeIcon} />
-        </IconButton>
-        <div className={styles.separator} />
-        <CardTitle
-          size="small"
-          title={<DangerousRaw>{connectorName}</DangerousRaw>}
-          subtitle="connectors.guide.subtitle"
-        />
-      </div>
-      <div className={styles.content}>
-        <Markdown className={styles.readme}>{readme}</Markdown>
-        <div className={styles.setup}>
-          <Step
-            title={t('connector_details.edit_config_label')}
-            index={0}
-            activeIndex={0}
-            buttonText="connectors.save_and_done"
-            buttonType="primary"
-            isLoading={isSubmitting}
-            onButtonClick={onSubmit}
+    <Modal
+      shouldCloseOnEsc
+      isOpen={Boolean(connector)}
+      className={modalStyles.fullScreen}
+      onRequestClose={() => {
+        onClose();
+      }}
+    >
+      <div className={styles.container}>
+        <div className={styles.header}>
+          <IconButton
+            size="large"
+            onClick={() => {
+              onClose(callbackConnectorId.current);
+            }}
           >
-            <form {...methods}>
-              <Controller
-                name="connectorConfigJson"
-                control={control}
-                defaultValue={configTemplate}
-                render={({ field: { onChange, value } }) => (
-                  <CodeEditor
-                    className={styles.editor}
-                    language="json"
-                    value={value}
-                    onChange={onChange}
-                  />
+            <Close className={styles.closeIcon} />
+          </IconButton>
+          <div className={styles.separator} />
+          <CardTitle
+            size="small"
+            title={<DangerousRaw>{connectorName}</DangerousRaw>}
+            subtitle="connectors.guide.subtitle"
+          />
+        </div>
+        <div className={styles.content}>
+          <OverlayScrollbar className={styles.readme}>
+            <div className={styles.readmeTitle}>README: {title}</div>
+            <Markdown className={styles.readmeContent}>{content}</Markdown>
+          </OverlayScrollbar>
+          <div className={styles.setup}>
+            <FormProvider {...methods}>
+              <form autoComplete="off" onSubmit={onSubmit}>
+                {isSocialConnector && (
+                  <div className={styles.block}>
+                    <div className={styles.blockTitle}>
+                      <div className={styles.number}>1</div>
+                      <div>{t('connectors.guide.general_setting')}</div>
+                    </div>
+                    <BasicForm
+                      isAllowEditTarget={isStandard}
+                      isStandard={isStandard}
+                      conflictConnectorName={conflictConnectorName}
+                    />
+                  </div>
                 )}
-              />
-            </form>
-            {!isSocialConnector && (
-              <SenderTester
-                className={styles.tester}
-                connectorId={connectorId}
-                connectorType={connectorType}
-                config={watch('connectorConfigJson')}
-              />
-            )}
-          </Step>
+                <div className={styles.block}>
+                  <div className={styles.blockTitle}>
+                    <div className={styles.number}>{isSocialConnector ? 2 : 1}</div>
+                    <div>{t('connectors.guide.parameter_configuration')}</div>
+                  </div>
+                  <ConfigForm
+                    connectorId={callbackConnectorId.current}
+                    connectorType={connectorType}
+                    formItems={formItems}
+                  />
+                </div>
+                {!isSocialConnector && (
+                  <div className={styles.block}>
+                    <div className={styles.blockTitle}>
+                      <div className={styles.number}>2</div>
+                      <div>{t('connectors.guide.test_connection')}</div>
+                    </div>
+                    <SenderTester
+                      connectorFactoryId={connectorId}
+                      connectorType={connectorType}
+                      parse={() => configParser(watch(), formItems)}
+                    />
+                  </div>
+                )}
+                <div className={styles.footer}>
+                  <Button
+                    title="connectors.save_and_done"
+                    type="primary"
+                    htmlType="submit"
+                    isLoading={isSubmitting}
+                  />
+                </div>
+              </form>
+            </FormProvider>
+          </div>
         </div>
       </div>
-    </div>
+    </Modal>
   );
-};
+}
 
 export default Guide;

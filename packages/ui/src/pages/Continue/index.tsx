@@ -1,11 +1,10 @@
-import { SignInIdentifier } from '@logto/schemas';
+import { MissingProfile } from '@logto/schemas';
 import { useParams } from 'react-router-dom';
 
 import ErrorPage from '@/pages/ErrorPage';
 
-import SetEmail from './SetEmail';
+import SetEmailOrPhone from './SetEmailOrPhone';
 import SetPassword from './SetPassword';
-import SetPhone from './SetPhone';
 import SetUsername from './SetUsername';
 
 type Parameters = {
@@ -15,20 +14,20 @@ type Parameters = {
 const Continue = () => {
   const { method = '' } = useParams<Parameters>();
 
-  if (method === 'password') {
+  if (method === MissingProfile.password) {
     return <SetPassword />;
   }
 
-  if (method === SignInIdentifier.Username) {
+  if (method === MissingProfile.username) {
     return <SetUsername />;
   }
 
-  if (method === SignInIdentifier.Email) {
-    return <SetEmail />;
-  }
-
-  if (method === SignInIdentifier.Sms) {
-    return <SetPhone />;
+  if (
+    method === MissingProfile.email ||
+    method === MissingProfile.phone ||
+    method === MissingProfile.emailOrPhone
+  ) {
+    return <SetEmailOrPhone missingProfile={method} />;
   }
 
   return <ErrorPage />;

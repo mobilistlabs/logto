@@ -1,8 +1,11 @@
 import type { SignUp } from '@logto/schemas';
+import { getSafe } from '@silverhand/essentials';
 import { diff } from 'deep-object-diff';
-import get from 'lodash.get';
 import { useTranslation } from 'react-i18next';
-import { snakeCase } from 'snake-case';
+
+import { signUpIdentifierPhrase } from '@/pages/SignInExperience/constants';
+import type { SignUpForm } from '@/pages/SignInExperience/types';
+import { signInExperienceParser } from '@/pages/SignInExperience/utils/form';
 
 import DiffSegment from './DiffSegment';
 import * as styles from './index.module.scss';
@@ -13,11 +16,13 @@ type Props = {
   isAfter?: boolean;
 };
 
-const SignUpDiffSection = ({ before, after, isAfter = false }: Props) => {
+function SignUpDiffSection({ before, after, isAfter = false }: Props) {
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
-  const signUpDiff = isAfter ? diff(before, after) : diff(after, before);
-  const signUp = isAfter ? after : before;
-  const hasChanged = (path: keyof SignUp) => get(signUpDiff, path) !== undefined;
+  const parsedBefore = signInExperienceParser.toLocalSignUp(before);
+  const parsedAfter = signInExperienceParser.toLocalSignUp(after);
+  const signUpDiff = isAfter ? diff(parsedBefore, parsedAfter) : diff(parsedAfter, parsedBefore);
+  const signUp = isAfter ? parsedAfter : parsedBefore;
+  const hasChanged = (path: keyof SignUpForm) => getSafe(signUpDiff, path) !== undefined;
 
   const { identifier, password, verify } = signUp;
   const hasAuthentication = password || verify;
@@ -29,9 +34,7 @@ const SignUpDiffSection = ({ before, after, isAfter = false }: Props) => {
       <ul className={styles.list}>
         <li>
           <DiffSegment hasChanged={hasChanged('identifier')} isAfter={isAfter}>
-            {t('sign_in_exp.sign_up_and_sign_in.identifiers', {
-              context: snakeCase(identifier),
-            })}
+            {String(t(signUpIdentifierPhrase[identifier]))}
           </DiffSegment>
           {hasAuthentication && ' ('}
           {password && (
@@ -54,6 +57,6 @@ const SignUpDiffSection = ({ before, after, isAfter = false }: Props) => {
       </ul>
     </div>
   );
-};
+}
 
 export default SignUpDiffSection;

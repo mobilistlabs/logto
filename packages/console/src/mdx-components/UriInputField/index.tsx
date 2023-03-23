@@ -15,7 +15,7 @@ import TextInput from '@/components/TextInput';
 import type { RequestError } from '@/hooks/use-api';
 import useApi from '@/hooks/use-api';
 import type { GuideForm } from '@/types/guide';
-import { uriValidator } from '@/utilities/validator';
+import { uriValidator } from '@/utils/validator';
 
 import * as styles from './index.module.scss';
 
@@ -26,7 +26,7 @@ type Props = {
   isSingle?: boolean;
 };
 
-const UriInputField = ({ appId, name, title, isSingle = false }: Props) => {
+function UriInputField({ appId, name, title, isSingle = false }: Props) {
   const methods = useForm<Partial<GuideForm>>();
   const {
     control,
@@ -36,7 +36,7 @@ const UriInputField = ({ appId, name, title, isSingle = false }: Props) => {
     formState: { isSubmitting },
   } = methods;
 
-  const { data, mutate } = useSWR<Application, RequestError>(`/api/applications/${appId}`);
+  const { data, mutate } = useSWR<Application, RequestError>(`api/applications/${appId}`);
 
   const ref = useRef<HTMLDivElement>(null);
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
@@ -44,7 +44,7 @@ const UriInputField = ({ appId, name, title, isSingle = false }: Props) => {
 
   const onSubmit = async (value: string[]) => {
     const updatedApp = await api
-      .patch(`/api/applications/${appId}`, {
+      .patch(`api/applications/${appId}`, {
         json: {
           oidcClientMetadata: {
             [name]: value.filter(Boolean),
@@ -138,6 +138,6 @@ const UriInputField = ({ appId, name, title, isSingle = false }: Props) => {
       </form>
     </FormProvider>
   );
-};
+}
 
 export default UriInputField;

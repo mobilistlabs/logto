@@ -1,13 +1,13 @@
 import type { User } from '@logto/schemas';
 import { userInfoSelectFields, UsersPasswordEncryptionMethod } from '@logto/schemas';
-import pick from 'lodash.pick';
+import { pick } from '@silverhand/essentials';
 
 export const mockUser: User = {
+  tenantId: 'fake_tenant',
   id: 'foo',
   username: 'foo',
   primaryEmail: 'foo@logto.io',
   primaryPhone: '111111',
-  roleNames: ['admin'],
   passwordEncrypted: 'password',
   passwordEncryptionMethod: UsersPasswordEncryptionMethod.Argon2i,
   name: null,
@@ -26,11 +26,11 @@ export const mockUserResponse = pick(mockUser, ...userInfoSelectFields);
 
 export const mockPasswordEncrypted = 'a1b2c3';
 export const mockUserWithPassword: User = {
+  tenantId: 'fake_tenant',
   id: 'id',
   username: 'username',
   primaryEmail: 'foo@logto.io',
   primaryPhone: '111111',
-  roleNames: ['admin'],
   passwordEncrypted: mockPasswordEncrypted,
   passwordEncryptionMethod: UsersPasswordEncryptionMethod.Argon2i,
   name: null,
@@ -47,11 +47,11 @@ export const mockUserWithPassword: User = {
 
 export const mockUserList: User[] = [
   {
+    tenantId: 'fake_tenant',
     id: '1',
     username: 'foo1',
     primaryEmail: 'foo1@logto.io',
     primaryPhone: '111111',
-    roleNames: ['admin'],
     passwordEncrypted: null,
     passwordEncryptionMethod: null,
     name: null,
@@ -64,11 +64,11 @@ export const mockUserList: User[] = [
     isSuspended: false,
   },
   {
+    tenantId: 'fake_tenant',
     id: '2',
     username: 'foo2',
     primaryEmail: 'foo2@logto.io',
     primaryPhone: '111111',
-    roleNames: ['admin'],
     passwordEncrypted: null,
     passwordEncryptionMethod: null,
     name: null,
@@ -81,11 +81,11 @@ export const mockUserList: User[] = [
     isSuspended: false,
   },
   {
+    tenantId: 'fake_tenant',
     id: '3',
     username: 'foo3',
     primaryEmail: 'foo3@logto.io',
     primaryPhone: '111111',
-    roleNames: ['admin'],
     passwordEncrypted: null,
     passwordEncryptionMethod: null,
     name: null,
@@ -98,11 +98,11 @@ export const mockUserList: User[] = [
     isSuspended: false,
   },
   {
+    tenantId: 'fake_tenant',
     id: '4',
     username: 'bar1',
     primaryEmail: 'bar1@logto.io',
     primaryPhone: '111111',
-    roleNames: ['admin'],
     passwordEncrypted: null,
     passwordEncryptionMethod: null,
     name: null,
@@ -115,11 +115,11 @@ export const mockUserList: User[] = [
     isSuspended: false,
   },
   {
+    tenantId: 'fake_tenant',
     id: '5',
     username: 'bar2',
     primaryEmail: 'bar2@logto.io',
     primaryPhone: '111111',
-    roleNames: ['admin'],
     passwordEncrypted: null,
     passwordEncryptionMethod: null,
     name: null,

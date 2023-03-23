@@ -1,20 +1,28 @@
 import type { SignInExperience } from '@logto/schemas';
-import { SignUpIdentifier, SignInIdentifier, SignInMode } from '@logto/schemas';
+import { SignInIdentifier, SignInMode, InteractionEvent } from '@logto/schemas';
 
 import { mockSignInExperience } from '#src/__mocks__/sign-in-experience.js';
 
-import { signInModeValidation, identifierValidation } from './sign-in-experience-validation.js';
+import {
+  verifySignInModeSettings,
+  verifyIdentifierSettings,
+  verifyProfileSettings,
+} from './sign-in-experience-validation.js';
 
-describe('signInModeValidation', () => {
-  it('register', () => {
+describe('verifySignInModeSettings', () => {
+  it(InteractionEvent.Register, () => {
     expect(() => {
-      signInModeValidation('register', { signInMode: SignInMode.SignIn } as SignInExperience);
+      verifySignInModeSettings(InteractionEvent.Register, {
+        signInMode: SignInMode.SignIn,
+      } as SignInExperience);
     }).toThrow();
     expect(() => {
-      signInModeValidation('register', { signInMode: SignInMode.Register } as SignInExperience);
+      verifySignInModeSettings(InteractionEvent.Register, {
+        signInMode: SignInMode.Register,
+      } as SignInExperience);
     }).not.toThrow();
     expect(() => {
-      signInModeValidation('register', {
+      verifySignInModeSettings(InteractionEvent.Register, {
         signInMode: SignInMode.SignInAndRegister,
       } as SignInExperience);
     }).not.toThrow();
@@ -22,31 +30,35 @@ describe('signInModeValidation', () => {
 
   it('SignIn', () => {
     expect(() => {
-      signInModeValidation('sign-in', { signInMode: SignInMode.SignIn } as SignInExperience);
+      verifySignInModeSettings(InteractionEvent.SignIn, {
+        signInMode: SignInMode.SignIn,
+      } as SignInExperience);
     }).not.toThrow();
     expect(() => {
-      signInModeValidation('sign-in', { signInMode: SignInMode.Register } as SignInExperience);
+      verifySignInModeSettings(InteractionEvent.SignIn, {
+        signInMode: SignInMode.Register,
+      } as SignInExperience);
     }).toThrow();
     expect(() => {
-      signInModeValidation('sign-in', {
+      verifySignInModeSettings(InteractionEvent.SignIn, {
         signInMode: SignInMode.SignInAndRegister,
       } as SignInExperience);
     }).not.toThrow();
   });
 
-  it('forgot-password', () => {
+  it(InteractionEvent.ForgotPassword, () => {
     expect(() => {
-      signInModeValidation('forgot-password', {
+      verifySignInModeSettings(InteractionEvent.ForgotPassword, {
         signInMode: SignInMode.SignIn,
       } as SignInExperience);
     }).not.toThrow();
     expect(() => {
-      signInModeValidation('forgot-password', {
+      verifySignInModeSettings(InteractionEvent.ForgotPassword, {
         signInMode: SignInMode.Register,
       } as SignInExperience);
     }).not.toThrow();
     expect(() => {
-      signInModeValidation('forgot-password', {
+      verifySignInModeSettings(InteractionEvent.ForgotPassword, {
         signInMode: SignInMode.SignInAndRegister,
       } as SignInExperience);
     }).not.toThrow();
@@ -58,11 +70,11 @@ describe('identifier validation', () => {
     const identifier = { username: 'username', password: 'password' };
 
     expect(() => {
-      identifierValidation(identifier, mockSignInExperience);
+      verifyIdentifierSettings(identifier, mockSignInExperience);
     }).not.toThrow();
 
     expect(() => {
-      identifierValidation(identifier, {
+      verifyIdentifierSettings(identifier, {
         ...mockSignInExperience,
         signIn: {
           methods: mockSignInExperience.signIn.methods.filter(
@@ -77,11 +89,11 @@ describe('identifier validation', () => {
     const identifier = { email: 'email', password: 'password' };
 
     expect(() => {
-      identifierValidation(identifier, mockSignInExperience);
+      verifyIdentifierSettings(identifier, mockSignInExperience);
     }).not.toThrow();
 
     expect(() => {
-      identifierValidation(identifier, {
+      verifyIdentifierSettings(identifier, {
         ...mockSignInExperience,
         signIn: {
           methods: mockSignInExperience.signIn.methods.filter(
@@ -92,7 +104,7 @@ describe('identifier validation', () => {
     }).toThrow();
 
     expect(() => {
-      identifierValidation(identifier, {
+      verifyIdentifierSettings(identifier, {
         ...mockSignInExperience,
         signIn: {
           methods: [
@@ -108,15 +120,15 @@ describe('identifier validation', () => {
     }).toThrow();
   });
 
-  it('email passcode', () => {
-    const identifier = { email: 'email', passcode: 'passcode' };
+  it('email verificationCode', () => {
+    const identifier = { email: 'email', verificationCode: 'verificationCode' };
 
     expect(() => {
-      identifierValidation(identifier, mockSignInExperience);
+      verifyIdentifierSettings(identifier, mockSignInExperience);
     }).not.toThrow();
 
     expect(() => {
-      identifierValidation(identifier, {
+      verifyIdentifierSettings(identifier, {
         ...mockSignInExperience,
         signIn: {
           methods: mockSignInExperience.signIn.methods.filter(
@@ -127,7 +139,7 @@ describe('identifier validation', () => {
     }).toThrow();
 
     expect(() => {
-      identifierValidation(identifier, {
+      verifyIdentifierSettings(identifier, {
         ...mockSignInExperience,
         signIn: {
           methods: [
@@ -143,10 +155,10 @@ describe('identifier validation', () => {
     }).toThrow();
 
     expect(() => {
-      identifierValidation(identifier, {
+      verifyIdentifierSettings(identifier, {
         ...mockSignInExperience,
         signUp: {
-          identifier: SignUpIdentifier.Email,
+          identifiers: [SignInIdentifier.Email],
           password: false,
           verify: true,
         },
@@ -168,27 +180,27 @@ describe('identifier validation', () => {
     const identifier = { phone: '123', password: 'password' };
 
     expect(() => {
-      identifierValidation(identifier, mockSignInExperience);
+      verifyIdentifierSettings(identifier, mockSignInExperience);
     }).not.toThrow();
 
     expect(() => {
-      identifierValidation(identifier, {
+      verifyIdentifierSettings(identifier, {
         ...mockSignInExperience,
         signIn: {
           methods: mockSignInExperience.signIn.methods.filter(
-            ({ identifier }) => identifier !== SignInIdentifier.Sms
+            ({ identifier }) => identifier !== SignInIdentifier.Phone
           ),
         },
       });
     }).toThrow();
 
     expect(() => {
-      identifierValidation(identifier, {
+      verifyIdentifierSettings(identifier, {
         ...mockSignInExperience,
         signIn: {
           methods: [
             {
-              identifier: SignInIdentifier.Sms,
+              identifier: SignInIdentifier.Phone,
               password: false,
               verificationCode: true,
               isPasswordPrimary: true,
@@ -199,31 +211,31 @@ describe('identifier validation', () => {
     }).toThrow();
   });
 
-  it('phone passcode', () => {
-    const identifier = { phone: '123456', passcode: 'passcode' };
+  it('phone verificationCode', () => {
+    const identifier = { phone: '123456', verificationCode: 'verificationCode' };
 
     expect(() => {
-      identifierValidation(identifier, mockSignInExperience);
+      verifyIdentifierSettings(identifier, mockSignInExperience);
     }).not.toThrow();
 
     expect(() => {
-      identifierValidation(identifier, {
+      verifyIdentifierSettings(identifier, {
         ...mockSignInExperience,
         signIn: {
           methods: mockSignInExperience.signIn.methods.filter(
-            ({ identifier }) => identifier !== SignInIdentifier.Sms
+            ({ identifier }) => identifier !== SignInIdentifier.Phone
           ),
         },
       });
     }).toThrow();
 
     expect(() => {
-      identifierValidation(identifier, {
+      verifyIdentifierSettings(identifier, {
         ...mockSignInExperience,
         signIn: {
           methods: [
             {
-              identifier: SignInIdentifier.Sms,
+              identifier: SignInIdentifier.Phone,
               password: true,
               verificationCode: false,
               isPasswordPrimary: true,
@@ -234,17 +246,17 @@ describe('identifier validation', () => {
     }).toThrow();
 
     expect(() => {
-      identifierValidation(identifier, {
+      verifyIdentifierSettings(identifier, {
         ...mockSignInExperience,
         signUp: {
-          identifier: SignUpIdentifier.Sms,
+          identifiers: [SignInIdentifier.Phone],
           password: false,
           verify: true,
         },
         signIn: {
           methods: [
             {
-              identifier: SignInIdentifier.Sms,
+              identifier: SignInIdentifier.Phone,
               password: true,
               verificationCode: false,
               isPasswordPrimary: true,
@@ -253,5 +265,113 @@ describe('identifier validation', () => {
         },
       });
     }).not.toThrow();
+  });
+
+  it('connector phone should not throw', () => {
+    const identifier = { phone: '123456', connectorId: 'logto' };
+
+    expect(() => {
+      verifyIdentifierSettings(identifier, {
+        ...mockSignInExperience,
+        signIn: {
+          methods: mockSignInExperience.signIn.methods.filter(
+            ({ identifier }) => identifier !== SignInIdentifier.Phone
+          ),
+        },
+      });
+    }).not.toThrow();
+  });
+
+  it('connector email should not throw', () => {
+    const identifier = { email: 'foo@logto.io', connectorId: 'logto' };
+
+    expect(() => {
+      verifyIdentifierSettings(identifier, {
+        ...mockSignInExperience,
+        signIn: {
+          methods: mockSignInExperience.signIn.methods.filter(
+            ({ identifier }) => identifier !== SignInIdentifier.Email
+          ),
+        },
+      });
+    }).not.toThrow();
+  });
+});
+
+describe('profile validation', () => {
+  it('profile sign-in-experience settings verification', () => {
+    expect(() => {
+      verifyProfileSettings({ username: 'foo', password: 'password' }, mockSignInExperience);
+    }).not.toThrow();
+
+    expect(() => {
+      verifyProfileSettings({ email: 'email@logto.io' }, mockSignInExperience);
+    }).toThrow();
+
+    expect(() => {
+      verifyProfileSettings(
+        { email: 'email@logto.io' },
+        {
+          ...mockSignInExperience,
+          signUp: { identifiers: [SignInIdentifier.Email], password: false, verify: true },
+        }
+      );
+    }).not.toThrow();
+
+    expect(() => {
+      verifyProfileSettings({ phone: '123456' }, mockSignInExperience);
+    }).toThrow();
+
+    expect(() => {
+      verifyProfileSettings(
+        { phone: '123456' },
+        {
+          ...mockSignInExperience,
+          signUp: { identifiers: [SignInIdentifier.Phone], password: false, verify: true },
+        }
+      );
+    }).not.toThrow();
+
+    expect(() => {
+      verifyProfileSettings(
+        { phone: '123456' },
+        {
+          ...mockSignInExperience,
+          signUp: {
+            identifiers: [SignInIdentifier.Phone, SignInIdentifier.Email],
+            password: false,
+            verify: true,
+          },
+        }
+      );
+    }).not.toThrow();
+
+    expect(() => {
+      verifyProfileSettings(
+        { email: 'email@logto.io' },
+        {
+          ...mockSignInExperience,
+          signUp: {
+            identifiers: [SignInIdentifier.Phone, SignInIdentifier.Email],
+            password: false,
+            verify: true,
+          },
+        }
+      );
+    }).not.toThrow();
+
+    expect(() => {
+      verifyProfileSettings(
+        { username: 'foo' },
+        {
+          ...mockSignInExperience,
+          signUp: {
+            identifiers: [SignInIdentifier.Phone, SignInIdentifier.Email],
+            password: false,
+            verify: true,
+          },
+        }
+      );
+    }).toThrow();
   });
 });

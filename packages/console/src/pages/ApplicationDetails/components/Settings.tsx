@@ -1,7 +1,7 @@
 import type { Application } from '@logto/schemas';
 import { ApplicationType, validateRedirectUrl } from '@logto/schemas';
 import { Controller, useFormContext } from 'react-hook-form';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 
 import CopyToClipboard from '@/components/CopyToClipboard';
 import FormCard from '@/components/FormCard';
@@ -10,7 +10,9 @@ import type { MultiTextInputRule } from '@/components/MultiTextInput/types';
 import { createValidatorForRhf, convertRhfErrorMessage } from '@/components/MultiTextInput/utils';
 import MultiTextInputField from '@/components/MultiTextInputField';
 import TextInput from '@/components/TextInput';
-import { uriOriginValidator } from '@/utilities/validator';
+import TextLink from '@/components/TextLink';
+import useDocumentationUrl from '@/hooks/use-documentation-url';
+import { uriOriginValidator } from '@/utils/validator';
 
 import * as styles from '../index.module.scss';
 
@@ -18,8 +20,9 @@ type Props = {
   data: Application;
 };
 
-const Settings = ({ data }: Props) => {
+function Settings({ data }: Props) {
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
+  const { getDocumentationUrl } = useDocumentationUrl();
   const {
     control,
     register,
@@ -40,7 +43,7 @@ const Settings = ({ data }: Props) => {
     <FormCard
       title="application_details.settings"
       description="application_details.settings_description"
-      learnMoreLink="https://docs.logto.io/docs/references/applications"
+      learnMoreLink={getDocumentationUrl('/docs/references/applications')}
     >
       <FormField isRequired title="application_details.application_name">
         <TextInput
@@ -55,7 +58,24 @@ const Settings = ({ data }: Props) => {
           placeholder={t('application_details.description_placeholder')}
         />
       </FormField>
-      <FormField title="application_details.application_id">
+      <FormField
+        title="application_details.application_id"
+        tip={(closeTipHandler) => (
+          <Trans
+            components={{
+              a: (
+                <TextLink
+                  href="https://openid.net/specs/openid-connect-core-1_0.html"
+                  target="_blank"
+                  onClick={closeTipHandler}
+                />
+              ),
+            }}
+          >
+            {t('application_details.application_id_tip')}
+          </Trans>
+        )}
+      >
         <CopyToClipboard value={id} variant="border" className={styles.textField} />
       </FormField>
       {[ApplicationType.Traditional, ApplicationType.MachineToMachine].includes(
@@ -85,7 +105,21 @@ const Settings = ({ data }: Props) => {
             <MultiTextInputField
               isRequired
               title="application_details.redirect_uris"
-              tooltip="application_details.redirect_uri_tip"
+              tip={(closeTipHandler) => (
+                <Trans
+                  components={{
+                    a: (
+                      <TextLink
+                        href="https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest"
+                        target="_blank"
+                        onClick={closeTipHandler}
+                      />
+                    ),
+                  }}
+                >
+                  {t('application_details.redirect_uri_tip')}
+                </Trans>
+              )}
               value={value}
               error={convertRhfErrorMessage(error?.message)}
               placeholder={
@@ -109,7 +143,7 @@ const Settings = ({ data }: Props) => {
           render={({ field: { onChange, value }, fieldState: { error } }) => (
             <MultiTextInputField
               title="application_details.post_sign_out_redirect_uris"
-              tooltip="application_details.post_sign_out_redirect_uri_tip"
+              tip={t('application_details.post_sign_out_redirect_uri_tip')}
               value={value}
               error={convertRhfErrorMessage(error?.message)}
               placeholder={t('application_details.post_sign_out_redirect_uri_placeholder')}
@@ -134,7 +168,21 @@ const Settings = ({ data }: Props) => {
           render={({ field: { onChange, value }, fieldState: { error } }) => (
             <MultiTextInputField
               title="application_details.cors_allowed_origins"
-              tooltip="application_details.cors_allowed_origins_tip"
+              tip={(closeTipHandler) => (
+                <Trans
+                  components={{
+                    a: (
+                      <TextLink
+                        href="https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS"
+                        target="_blank"
+                        onClick={closeTipHandler}
+                      />
+                    ),
+                  }}
+                >
+                  {t('application_details.cors_allowed_origins_tip')}
+                </Trans>
+              )}
               value={value}
               error={convertRhfErrorMessage(error?.message)}
               placeholder={t('application_details.cors_allowed_origins_placeholder')}
@@ -145,6 +193,6 @@ const Settings = ({ data }: Props) => {
       )}
     </FormCard>
   );
-};
+}
 
 export default Settings;

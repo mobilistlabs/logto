@@ -8,7 +8,10 @@
   "stylelint.validate": ["css", "scss"],
   "eslint.workingDirectories": [
     {
-      "pattern": "./packages/*"
+      "pattern": "./packages/*",
+    },
+    {
+      "pattern": "./packages/toolkit/*",
     }
   ],
   "eslint.validate": [
@@ -24,15 +27,18 @@
     "Alipay",
     "CIAM",
     "codecov",
+    "hasura",
     "Logto",
     "oidc",
     "passcode",
+    "passcodes",
     "Passwordless",
     "pnpm",
     "silverhand",
     "slonik",
     "stylelint",
+    "timestamptz",
     "topbar",
-    "hasura"
+    "withtyped"
   ]
 }

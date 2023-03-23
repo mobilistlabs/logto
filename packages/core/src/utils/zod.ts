@@ -5,6 +5,7 @@ import { conditional } from '@silverhand/essentials';
 import type { OpenAPIV3 } from 'openapi-types';
 import type { ZodStringDef } from 'zod';
 import {
+  ZodRecord,
   ZodArray,
   ZodBoolean,
   ZodEffects,
@@ -55,8 +56,6 @@ export const translationSchemas: Record<string, OpenAPIV3.SchemaObject> = {
 
 export type ZodStringCheck = ValuesOf<ZodStringDef['checks']>;
 
-// Switch-clause
-// eslint-disable-next-line complexity
 const zodStringCheckToSwaggerFormat = (zodStringCheck: ZodStringCheck) => {
   const { kind } = zodStringCheck;
 
@@ -65,16 +64,19 @@ const zodStringCheckToSwaggerFormat = (zodStringCheck: ZodStringCheck) => {
     case 'url':
     case 'uuid':
     case 'cuid':
-    case 'regex':
+    case 'regex': {
       return kind;
+    }
 
     case 'min':
-    case 'max':
+    case 'max': {
       // Do nothing here
       return;
+    }
 
-    default:
+    default: {
       throw new RequestError('swagger.invalid_zod_type', zodStringCheck);
+    }
   }
 };
 
@@ -109,23 +111,30 @@ const zodLiteralToSwagger = (zodLiteral: ZodLiteral<unknown>): OpenAPIV3.SchemaO
   const { value } = zodLiteral;
 
   switch (typeof value) {
-    case 'boolean':
+    case 'boolean': {
       return {
         type: 'boolean',
         format: String(value),
       };
-    case 'number':
+    }
+
+    case 'number': {
       return {
         type: 'number',
         format: String(value),
       };
-    case 'string':
+    }
+
+    case 'string': {
       return {
         type: 'string',
         format: value === '' ? 'empty' : `"${value}"`,
       };
-    default:
+    }
+
+    default: {
       throw new RequestError('swagger.invalid_zod_type', zodLiteral);
+    }
   }
 };
 
@@ -201,6 +210,13 @@ export const zodTypeToSwagger = (
     };
   }
 
+  if (config instanceof ZodRecord) {
+    return {
+      type: 'object',
+      additionalProperties: zodTypeToSwagger(config.valueSchema),
+    };
+  }
+
   if (config instanceof ZodArray) {
     return {
       type: 'array',
@@ -221,6 +237,13 @@ export const zodTypeToSwagger = (
   if (config instanceof ZodBoolean) {
     return {
       type: 'boolean',
+    };
+  }
+
+  if (config instanceof ZodRecord) {
+    return {
+      type: 'object',
+      additionalProperties: zodTypeToSwagger(config.valueSchema),
     };
   }
 

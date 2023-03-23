@@ -1,63 +1,56 @@
 import { SignInIdentifier } from '@logto/schemas';
 import { useTranslation } from 'react-i18next';
-import { useParams, useLocation } from 'react-router-dom';
-import { is } from 'superstruct';
+import { useLocation } from 'react-router-dom';
+import { validate } from 'superstruct';
 
-import SecondaryPageWrapper from '@/components/SecondaryPageWrapper';
-import PasswordSignInForm from '@/containers/PasswordSignInForm';
+import SecondaryPageLayout from '@/Layout/SecondaryPageLayout';
 import { useSieMethods } from '@/hooks/use-sie';
 import ErrorPage from '@/pages/ErrorPage';
-import { passcodeStateGuard } from '@/types/guard';
+import { passwordIdentifierStateGuard } from '@/types/guard';
 import { formatPhoneNumberWithCountryCallingCode } from '@/utils/country-code';
-import { isEmailOrSmsMethod } from '@/utils/sign-in-experience';
+import { identifierInputDescriptionMap } from '@/utils/form';
 
-type Parameters = {
-  method?: string;
-};
+import PasswordForm from './PasswordForm';
 
 const SignInPassword = () => {
   const { t } = useTranslation();
-  const { method } = useParams<Parameters>();
   const { state } = useLocation();
   const { signInMethods } = useSieMethods();
-  const methodSetting = signInMethods.find(({ identifier }) => identifier === method);
 
-  // Only Email and Sms method should use this page
-  if (!methodSetting || !isEmailOrSmsMethod(methodSetting.identifier) || !methodSetting.password) {
+  const [_, identifierState] = validate(state, passwordIdentifierStateGuard);
+
+  if (!identifierState) {
+    return <ErrorPage title="error.invalid_session" />;
+  }
+
+  const { identifier, value } = identifierState;
+
+  const methodSetting = signInMethods.find((method) => method.identifier === identifier);
+
+  // Sign-In method not enabled
+  if (!methodSetting || !methodSetting.password) {
     return <ErrorPage />;
   }
 
-  const invalidState = !is(state, passcodeStateGuard);
-  const value =
-    !invalidState && state[methodSetting.identifier === SignInIdentifier.Email ? 'email' : 'phone'];
-
-  if (!value) {
-    return (
-      <ErrorPage
-        title={method === SignInIdentifier.Email ? 'error.invalid_email' : 'error.invalid_phone'}
-      />
-    );
-  }
-
   return (
-    <SecondaryPageWrapper
+    <SecondaryPageLayout
       title="description.enter_password"
       description="description.enter_password_for"
       descriptionProps={{
-        method: t(`description.${method === SignInIdentifier.Email ? 'email' : 'phone_number'}`),
+        method: t(identifierInputDescriptionMap[identifier]),
         value:
-          method === SignInIdentifier.Email
-            ? value
-            : formatPhoneNumberWithCountryCallingCode(value),
+          identifier === SignInIdentifier.Phone
+            ? formatPhoneNumberWithCountryCallingCode(value)
+            : value,
       }}
     >
-      <PasswordSignInForm
+      <PasswordForm
         autoFocus
-        method={methodSetting.identifier}
+        identifier={methodSetting.identifier}
         value={value}
-        hasPasswordlessButton={methodSetting.verificationCode}
+        isVerificationCodeEnabled={methodSetting.verificationCode}
       />
-    </SecondaryPageWrapper>
+    </SecondaryPageLayout>
   );
 };
 

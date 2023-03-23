@@ -8,11 +8,11 @@ const sign_in_exp = {
     others: 'Outros',
   },
   welcome: {
-    title:
-      'Esta é a primeira vez que define a experiência de login. Este guia irá ajudá-lo a passar por todas as configurações necessárias e começar rapidamente.',
+    title: 'Customize sign-in experience', // UNTRANSLATED
+    description:
+      'Get started fast with your first sign-in setup. This guide walks you through all the necessary settings.', // UNTRANSLATED
     get_started: 'Começar',
     apply_remind: 'Observe que a experiência de login será aplicada a todos os apps nesta conta.',
-    got_it: 'Entendi',
   },
   color: {
     title: 'COR',
@@ -27,21 +27,29 @@ const sign_in_exp = {
   branding: {
     title: 'ÁREA DE MARCA',
     ui_style: 'Estilo',
-    styles: {
-      logo_slogan: 'Logo da app com slogan',
-      logo: 'Apenas o logo da app',
-    },
+    favicon: 'Favicon', // UNTRANSLATED
     logo_image_url: 'URL do logotipo da app',
     logo_image_url_placeholder: 'https://your.cdn.domain/logo.png',
     dark_logo_image_url: 'URL do logotipo da app (tema escuro)',
     dark_logo_image_url_placeholder: 'https://your.cdn.domain/logo-dark.png',
-    slogan: 'Slogan',
-    slogan_placeholder: 'Liberte a sua criatividade',
+    logo_image: 'App logo', // UNTRANSLATED
+    dark_logo_image: 'App logo (Dark)', // UNTRANSLATED
+    logo_image_error: 'App logo: {{error}}', // UNTRANSLATED
+    favicon_error: 'Favicon: {{error}}', // UNTRANSLATED
+  },
+  custom_css: {
+    title: 'Custom CSS', // UNTRANSLATED
+    css_code_editor_title: 'Personalize your UI with Custom CSS', // UNTRANSLATED
+    css_code_editor_description1: 'See the example of Custom CSS.', // UNTRANSLATED
+    css_code_editor_description2: '<a>{{link}}</a>', // UNTRANSLATED
+
+    css_code_editor_description_link_content: 'Learn more', // UNTRANSLATED
+    css_code_editor_content_placeholder:
+      'Enter your custom CSS to tailor the styles of anything to your exact specifications. Express your creativity and make your UI stand out.', // UNTRANSLATED
   },
   sign_up_and_sign_in: {
-    identifiers: 'Sign-up identifiers', // UNTRANSLATED
     identifiers_email: 'Email address', // UNTRANSLATED
-    identifiers_sms: 'Phone number', // UNTRANSLATED
+    identifiers_phone: 'Phone number', // UNTRANSLATED
     identifiers_username: 'Username', // UNTRANSLATED
     identifiers_email_or_sms: 'Email address or phone number', // UNTRANSLATED
     identifiers_none: 'Not applicable', // UNTRANSLATED
@@ -75,7 +83,7 @@ const sign_in_exp = {
       social_sign_in: 'Social sign-in', // UNTRANSLATED
       description:
         'Depending on the mandatory identifier you set up, your user may be asked to provide an identifier when signing up via social connector.', // UNTRANSLATED
-      add_social_connector: 'Link Social Connector', // UNTRANSLATED
+      add_social_connector: 'Adicionar Conector Social',
       set_up_hint: {
         not_in_list: 'Not in the list?', // UNTRANSLATED
         set_up_more: 'Set up', // UNTRANSLATED
@@ -97,11 +105,10 @@ const sign_in_exp = {
   others: {
     terms_of_use: {
       title: 'TERMOS DE USO',
-      enable: 'Ativar termos de uso',
-      description: 'Adicione os termos legais para uso do seu produto',
-      terms_of_use: 'Termos de uso',
+      terms_of_use: 'URL dos termos de uso',
       terms_of_use_placeholder: 'https://your.terms.of.use/',
-      terms_of_use_tip: 'URL dos termos de uso',
+      privacy_policy: 'URL da política de privacidade',
+      privacy_policy_placeholder: 'https://your.privacy.policy/',
     },
     languages: {
       title: 'LÍNGUAS',
@@ -133,7 +140,6 @@ const sign_in_exp = {
       default_language_deletion_title: 'Default language can’t be deleted.', // UNTRANSLATED
       default_language_deletion_description:
         '{{language}} is set as your default language and can’t be deleted. ', // UNTRANSLATED
-      got_it: 'Got It', // UNTRANSLATED
     },
     advanced_options: {
       title: 'OPÇÕES AVANÇADAS',
@@ -143,15 +149,15 @@ const sign_in_exp = {
     },
   },
   setup_warning: {
-    no_connector: '',
     no_connector_sms:
-      'No SMS connector set-up yet. Until you finish configuring your SMS connector, you won’t be able to sign in.', // UNTRANSLATED
+      'No SMS connector set-up yet. Before completing the configuration, users will not be able to sign in with this method. <a>{{link}}</a> in "Connectors"', // UNTRANSLATED
     no_connector_email:
-      'No email connector set-up yet. Until you finish configuring your email connector, you won’t be able to sign in.', // UNTRANSLATED
+      'No email connector set-up yet. Before completing the configuration, users will not be able to sign in with this method. <a>{{link}}</a> in "Connectors"', // UNTRANSLATED
     no_connector_social:
-      'No social connector set-up yet. Until you finish configuring your social connector, you won’t be able to sign in.', // UNTRANSLATED
+      'No social connector set-up yet. Before completing the configuration, users will not be able to sign in with this method. <a>{{link}}</a> in "Connectors"', // UNTRANSLATED
     no_added_social_connector:
       'Configurou alguns conectores sociais agora. Certifique-se de adicionar alguns a experiência de login.',
+    setup_link: 'Set up',
   },
   save_alert: {
     description:
@@ -164,8 +170,8 @@ const sign_in_exp = {
   },
   preview: {
     title: 'Pre-visualização do login',
-    dark: 'Escuro',
-    light: 'Claro',
+    live_preview: 'Live preview', // UNTRANSLATED
+    live_preview_tip: 'Save to preview changes', // UNTRANSLATED
     native: 'Nativo',
     desktop_web: 'Web computador',
     mobile_web: 'Web móvel',

@@ -1,29 +1,31 @@
-import type { Event, SignInExperience, Profile } from '@logto/schemas';
-import { SignUpIdentifier, SignInMode, SignInIdentifier } from '@logto/schemas';
+import type { SignInExperience, Profile, IdentifierPayload } from '@logto/schemas';
+import { SignInMode, SignInIdentifier, InteractionEvent } from '@logto/schemas';
 
 import RequestError from '#src/errors/RequestError/index.js';
 import assertThat from '#src/utils/assert-that.js';
 
-import type { IdentifierPayload } from '../types/guard.js';
+const forbiddenEventError = () => new RequestError({ code: 'auth.forbidden', status: 403 });
 
-const forbiddenEventError = new RequestError({ code: 'auth.forbidden', status: 403 });
+const forbiddenIdentifierError = () =>
+  new RequestError({
+    code: 'user.sign_in_method_not_enabled',
+    status: 422,
+  });
 
-const forbiddenIdentifierError = new RequestError({
-  code: 'user.sign_in_method_not_enabled',
-  status: 422,
-});
-
-export const signInModeValidation = (event: Event, { signInMode }: SignInExperience) => {
-  if (event === 'sign-in') {
-    assertThat(signInMode !== SignInMode.Register, forbiddenEventError);
+export const verifySignInModeSettings = (
+  event: InteractionEvent,
+  { signInMode }: SignInExperience
+) => {
+  if (event === InteractionEvent.SignIn) {
+    assertThat(signInMode !== SignInMode.Register, forbiddenEventError());
   }
 
-  if (event === 'register') {
-    assertThat(signInMode !== SignInMode.SignIn, forbiddenEventError);
+  if (event === InteractionEvent.Register) {
+    assertThat(signInMode !== SignInMode.SignIn, forbiddenEventError());
   }
 };
 
-export const identifierValidation = (
+export const verifyIdentifierSettings = (
   identifier: IdentifierPayload,
   signInExperience: SignInExperience
 ) => {
@@ -35,16 +37,21 @@ export const identifierValidation = (
       signIn.methods.some(
         ({ identifier: method, password }) => method === SignInIdentifier.Username && password
       ),
-      forbiddenIdentifierError
+      forbiddenIdentifierError()
     );
 
+    return;
+  }
+
+  // Social Identifier  TODO: @darcy, @sijie
+  // should not verify connector related identifier here
+  if ('connectorId' in identifier) {
     return;
   }
 
   // Email Identifier
   if ('email' in identifier) {
     assertThat(
-      // eslint-disable-next-line complexity
       signIn.methods.some(({ identifier: method, password, verificationCode }) => {
         if (method !== SignInIdentifier.Email) {
           return false;
@@ -55,11 +62,11 @@ export const identifierValidation = (
           return false;
         }
 
-        // Email Passcode Verification: SignIn verificationCode enabled or SignUp Email verify enabled
+        // Email verificationCode Verification: SignIn verificationCode enabled or SignUp Email verify enabled
         if (
-          'passcode' in identifier &&
+          'verificationCode' in identifier &&
           !verificationCode &&
-          ![SignUpIdentifier.Email, SignUpIdentifier.EmailOrSms].includes(signUp.identifier) &&
+          !signUp.identifiers.includes(SignInIdentifier.Email) &&
           !signUp.verify
         ) {
           return false;
@@ -67,7 +74,7 @@ export const identifierValidation = (
 
         return true;
       }),
-      forbiddenIdentifierError
+      forbiddenIdentifierError()
     );
 
     return;
@@ -76,9 +83,8 @@ export const identifierValidation = (
   // Phone Identifier
   if ('phone' in identifier) {
     assertThat(
-      // eslint-disable-next-line complexity
       signIn.methods.some(({ identifier: method, password, verificationCode }) => {
-        if (method !== SignInIdentifier.Sms) {
+        if (method !== SignInIdentifier.Phone) {
           return false;
         }
 
@@ -87,11 +93,11 @@ export const identifierValidation = (
           return false;
         }
 
-        // Phone Passcode Verification: SignIn verificationCode enabled or SignUp Email verify enabled
+        // Phone verificationCode Verification: SignIn verificationCode enabled or SignUp Phone verify enabled
         if (
-          'passcode' in identifier &&
+          'verificationCode' in identifier &&
           !verificationCode &&
-          ![SignUpIdentifier.Sms, SignUpIdentifier.EmailOrSms].includes(signUp.identifier) &&
+          !signUp.identifiers.includes(SignInIdentifier.Phone) &&
           !signUp.verify
         ) {
           return false;
@@ -99,35 +105,25 @@ export const identifierValidation = (
 
         return true;
       }),
-      forbiddenIdentifierError
+      forbiddenIdentifierError()
     );
   }
-
-  // Social Identifier  TODO: @darcy, @sijie
 };
 
-export const profileValidation = (profile: Profile, { signUp }: SignInExperience) => {
+export const verifyProfileSettings = (profile: Profile, { signUp }: SignInExperience) => {
   if (profile.phone) {
-    assertThat(
-      signUp.identifier === SignUpIdentifier.Sms ||
-        signUp.identifier === SignUpIdentifier.EmailOrSms,
-      forbiddenIdentifierError
-    );
+    assertThat(signUp.identifiers.includes(SignInIdentifier.Phone), forbiddenIdentifierError());
   }
 
   if (profile.email) {
-    assertThat(
-      signUp.identifier === SignUpIdentifier.Email ||
-        signUp.identifier === SignUpIdentifier.EmailOrSms,
-      forbiddenIdentifierError
-    );
+    assertThat(signUp.identifiers.includes(SignInIdentifier.Email), forbiddenIdentifierError());
   }
 
   if (profile.username) {
-    assertThat(signUp.identifier === SignUpIdentifier.Username, forbiddenIdentifierError);
+    assertThat(signUp.identifiers.includes(SignInIdentifier.Username), forbiddenIdentifierError());
   }
 
   if (profile.password) {
-    assertThat(signUp.password, forbiddenIdentifierError);
+    assertThat(signUp.password, forbiddenIdentifierError());
   }
 };

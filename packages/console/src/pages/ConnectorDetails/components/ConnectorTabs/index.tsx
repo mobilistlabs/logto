@@ -1,12 +1,12 @@
 import type { ConnectorResponse } from '@logto/schemas';
-import { ConnectorPlatform } from '@logto/schemas';
+import { ConnectorType, ConnectorPlatform } from '@logto/schemas';
 import classNames from 'classnames';
-import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import useSWR from 'swr';
 
 import { connectorPlatformLabel } from '@/consts';
+import { ConnectorsTabs } from '@/consts/page-tabs';
 import ConnectorPlatformIcon from '@/icons/ConnectorPlatformIcon';
 
 import * as styles from './index.module.scss';
@@ -16,17 +16,13 @@ type Props = {
   connectorId: string;
 };
 
-const ConnectorTabs = ({ target, connectorId }: Props) => {
+function ConnectorTabs({ target, connectorId }: Props) {
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
-  const { data } = useSWR<ConnectorResponse[]>(`/api/connectors?target=${target}`);
+  const { data: connectors } = useSWR<ConnectorResponse[]>(`api/connectors?target=${target}`);
 
-  const connectors = useMemo(() => {
-    if (!data) {
-      return [];
-    }
-
-    return data.filter(({ enabled }) => enabled);
-  }, [data]);
+  if (!connectors) {
+    return null;
+  }
 
   if (connectors.length === 0) {
     return null;
@@ -41,7 +37,11 @@ const ConnectorTabs = ({ target, connectorId }: Props) => {
       {connectors.map((connector) => (
         <Link
           key={connector.id}
-          to={`/connectors/${connector.id}`}
+          to={`/connectors/${
+            connector.type === ConnectorType.Social
+              ? ConnectorsTabs.Social
+              : ConnectorsTabs.Passwordless
+          }/${connector.id}`}
           className={classNames(styles.tab, connector.id === connectorId && styles.active)}
         >
           {connector.platform && (
@@ -54,6 +54,6 @@ const ConnectorTabs = ({ target, connectorId }: Props) => {
       ))}
     </div>
   );
-};
+}
 
 export default ConnectorTabs;

@@ -107,8 +107,16 @@ export const mockSmsConnectorConfig = {
       usageType: 'Register',
     },
     {
-      content: 'This is for testing purposes only. Your passcode is {{code}}.',
+      usageType: 'ForgotPassword',
+      content: 'This is for forgot-password purposes only. Your passcode is {{code}}.',
+    },
+    {
+      usageType: 'Generic',
+      content: 'This is for Management API call only. Your passcode is {{code}}.',
+    },
+    {
       usageType: 'Test',
+      content: 'This is for testing purposes only. Your passcode is {{code}}.',
     },
   ],
 };
@@ -130,6 +138,57 @@ export const mockEmailConnectorConfig = {
       type: 'text/plain',
       subject: 'Logto Register Template',
       content: 'This is for registering purposes only. Your passcode is {{code}}.',
+    },
+    {
+      usageType: 'ForgotPassword',
+      type: 'text/plain',
+      subject: 'Logto Forgot Password Template',
+      content: 'This is for forgot-password purposes only. Your passcode is {{code}}.',
+    },
+    {
+      usageType: 'Generic',
+      type: 'text/plain',
+      subject: 'Logto Generic Template',
+      content: 'This is for Management API call only. Your passcode is {{code}}.',
+    },
+    {
+      usageType: 'Test',
+      type: 'text/plain',
+      subject: 'Logto Test Template',
+      content: 'This is for testing purposes only. Your passcode is {{code}}.',
+    },
+  ],
+};
+
+export const mockStandardEmailConnectorId = 'mock-email-service-alternative';
+export const mockStandardEmailConnectorConfig = {
+  apiKey: 'api-key-value',
+  fromEmail: 'noreply@logto.test.io',
+  fromName: 'from-name-value',
+  templates: [
+    {
+      usageType: 'SignIn',
+      type: 'text/plain',
+      subject: 'Logto SignIn Template',
+      content: 'This is for sign-in purposes only. Your passcode is {{code}}.',
+    },
+    {
+      usageType: 'Register',
+      type: 'text/plain',
+      subject: 'Logto Register Template',
+      content: 'This is for registering purposes only. Your passcode is {{code}}.',
+    },
+    {
+      usageType: 'ForgotPassword',
+      type: 'text/plain',
+      subject: 'Logto Forgot Password Template',
+      content: 'This is for forgot-password purposes only. Your passcode is {{code}}.',
+    },
+    {
+      usageType: 'Continue',
+      type: 'text/plain',
+      subject: 'Logto Continue Template',
+      content: 'This is for completing user profile purposes only. Your passcode is {{code}}.',
     },
     {
       usageType: 'Test',

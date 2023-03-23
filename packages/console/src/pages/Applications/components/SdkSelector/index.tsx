@@ -1,4 +1,4 @@
-import { AppearanceMode } from '@logto/schemas';
+import { Theme } from '@logto/schemas';
 import classNames from 'classnames';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -12,7 +12,7 @@ import Card from '@/components/Card';
 import RadioGroup, { Radio } from '@/components/RadioGroup';
 import Select from '@/components/Select';
 import Spacer from '@/components/Spacer';
-import { useTheme } from '@/hooks/use-theme';
+import useTheme from '@/hooks/use-theme';
 import type { SupportedSdk } from '@/types/applications';
 
 import * as styles from './index.module.scss';
@@ -26,18 +26,18 @@ type Props = {
   onToggle?: () => void;
 };
 
-const SdkSelector = ({
+function SdkSelector({
   className,
   sdks,
   selectedSdk,
   isCompact = false,
   onChange,
   onToggle,
-}: Props) => {
+}: Props) {
   const [isFolded, setIsFolded] = useState(isCompact);
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
   const theme = useTheme();
-  const isLightMode = theme === AppearanceMode.LightMode;
+  const isLightMode = theme === Theme.Light;
   const CongratsIcon = isLightMode ? Congrats : CongratsDark;
   const TadaIcon = isLightMode ? Tada : TadaDark;
 
@@ -94,6 +94,6 @@ const SdkSelector = ({
       </div>
     </Card>
   );
-};
+}
 
 export default SdkSelector;

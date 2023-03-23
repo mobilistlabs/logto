@@ -1,42 +1,82 @@
 import type { Resource, CreateResource } from '@logto/schemas';
+import { pickDefault, createMockUtils } from '@logto/shared/esm';
 
-import { mockResource } from '#src/__mocks__/index.js';
+import { mockResource, mockScope } from '#src/__mocks__/index.js';
+import { MockTenant } from '#src/test-utils/tenant.js';
 import { createRequester } from '#src/utils/test-utils.js';
 
-import resourceRoutes from './resource.js';
+const { jest } = import.meta;
 
-jest.mock('#src/queries/resource.js', () => ({
-  findTotalNumberOfResources: jest.fn(async () => ({ count: 10 })),
-  findAllResources: jest.fn(async (): Promise<Resource[]> => [mockResource]),
+const { mockEsm } = createMockUtils(jest);
+
+const resources = {
+  findTotalNumberOfResources: async () => ({ count: 10 }),
+  findAllResources: async (): Promise<Resource[]> => [mockResource],
   findResourceById: jest.fn(async (): Promise<Resource> => mockResource),
-  insertResource: jest.fn(
-    async (body: CreateResource): Promise<Resource> => ({
-      ...mockResource,
-      ...body,
-    })
-  ),
-  updateResourceById: jest.fn(
-    async (_, data: Partial<CreateResource>): Promise<Resource> => ({
-      ...mockResource,
-      ...data,
-    })
-  ),
+  insertResource: async (body: CreateResource): Promise<Resource> => ({
+    ...mockResource,
+    ...body,
+  }),
+  updateResourceById: async (_: unknown, data: Partial<CreateResource>): Promise<Resource> => ({
+    ...mockResource,
+    ...data,
+  }),
   deleteResourceById: jest.fn(),
+  findScopesByResourceId: async () => [mockScope],
+};
+const { findResourceById } = resources;
+
+const scopes = {
+  findScopesByResourceId: async () => [mockScope],
+  searchScopesByResourceId: async () => [mockScope],
+  countScopesByResourceId: async () => ({ count: 1 }),
+  insertScope: jest.fn(async () => mockScope),
+  updateScopeById: jest.fn(async () => mockScope),
+  deleteScopeById: jest.fn(),
+  findScopeByNameAndResourceId: jest.fn(),
+};
+const { insertScope, updateScopeById } = scopes;
+
+const libraries = {
+  resources: {
+    attachScopesToResources: async (resources: readonly Resource[]) =>
+      resources.map((resource) => ({
+        ...resource,
+        scopes: [],
+      })),
+  },
+};
+
+mockEsm('@logto/core-kit', () => ({
+  // eslint-disable-next-line unicorn/consistent-function-scoping
+  buildIdGenerator: () => () => 'randomId',
 }));
 
-jest.mock('@logto/shared', () => ({
-  // eslint-disable-next-line unicorn/consistent-function-scoping
-  buildIdGenerator: jest.fn(() => () => 'randomId'),
-}));
+const tenantContext = new MockTenant(undefined, { scopes, resources }, undefined, libraries);
+
+const resourceRoutes = await pickDefault(import('./resource.js'));
 
 describe('resource routes', () => {
-  const resourceRequest = createRequester({ authedRoutes: resourceRoutes });
+  const resourceRequest = createRequester({ authedRoutes: resourceRoutes, tenantContext });
 
   it('GET /resources', async () => {
     const response = await resourceRequest.get('/resources');
     expect(response.status).toEqual(200);
     expect(response.body).toEqual([mockResource]);
+    expect(response.header).not.toHaveProperty('total-number');
+  });
+
+  it('GET /resources?page=1', async () => {
+    const response = await resourceRequest.get('/resources?page=1');
+    expect(response.status).toEqual(200);
+    expect(response.body).toEqual([mockResource]);
     expect(response.header).toHaveProperty('total-number', '10');
+  });
+
+  it('GET /resources?includeScopes=true', async () => {
+    const response = await resourceRequest.get('/resources?includeScopes=true');
+    expect(response.status).toEqual(200);
+    expect(response.body).toEqual([{ ...mockResource, scopes: [] }]);
   });
 
   it('POST /resources', async () => {
@@ -50,6 +90,7 @@ describe('resource routes', () => {
 
     expect(response.status).toEqual(200);
     expect(response.body).toEqual({
+      tenantId: 'fake_tenant',
       id: 'randomId',
       name,
       indicator,
@@ -107,5 +148,71 @@ describe('resource routes', () => {
 
   it('DELETE /resources/:id', async () => {
     await expect(resourceRequest.delete('/resources/foo')).resolves.toHaveProperty('status', 204);
+  });
+
+  it('DELETE /resources/:id should throw with invalid id', async () => {
+    const { deleteResourceById } = resources;
+    deleteResourceById.mockRejectedValueOnce(new Error('not found'));
+
+    await expect(resourceRequest.delete('/resources/foo')).resolves.toHaveProperty('status', 500);
+  });
+
+  it('GET /resources/:id/scopes', async () => {
+    const response = await resourceRequest.get('/resources/foo/scopes');
+    expect(response.status).toEqual(200);
+    expect(response.body).toEqual([mockScope]);
+    expect(findResourceById).toHaveBeenCalledWith('foo');
+  });
+
+  it('POST /resources/:id/scopes', async () => {
+    const name = 'write:users';
+    const description = 'description';
+
+    const response = await resourceRequest
+      .post('/resources/foo/scopes')
+      .send({ name, description });
+
+    expect(response.status).toEqual(200);
+    expect(findResourceById).toHaveBeenCalledWith('foo');
+    expect(insertScope).toHaveBeenCalledWith({
+      id: 'randomId',
+      name,
+      description,
+      resourceId: 'foo',
+    });
+  });
+
+  it('POST /resources/:id/scopes should throw with spaces in name', async () => {
+    const name = 'write users';
+    const description = 'description';
+
+    const response = await resourceRequest
+      .post('/resources/foo/scopes')
+      .send({ name, description });
+
+    expect(response.status).toEqual(400);
+  });
+
+  it('PATCH /resources/:id/scopes/:scopeId', async () => {
+    const name = 'write:users';
+    const description = 'description';
+
+    const response = await resourceRequest
+      .patch('/resources/foo/scopes/foz')
+      .send({ name, description });
+
+    expect(response.status).toEqual(200);
+    expect(findResourceById).toHaveBeenCalledWith('foo');
+    expect(updateScopeById).toHaveBeenCalledWith('foz', {
+      name,
+      description,
+    });
+  });
+
+  it('DELETE /resources/:id/scopes/:scopeId', async () => {
+    await expect(resourceRequest.delete('/resources/foo/scopes/foz')).resolves.toHaveProperty(
+      'status',
+      204
+    );
   });
 });

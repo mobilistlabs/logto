@@ -1,4 +1,8 @@
 const errors = {
+  request: {
+    invalid_input: 'Input is invalid. {{details}}',
+    general: 'Request error occurred.',
+  },
   auth: {
     authorization_header_missing: 'Authorization header is missing.',
     authorization_token_type_not_supported: 'Authorization type is not supported.',
@@ -12,6 +16,9 @@ const errors = {
   guard: {
     invalid_input: 'The request {{type}} is invalid.',
     invalid_pagination: 'The request pagination value is invalid.',
+    can_not_get_tenant_id: 'Unable to get tenant id from request.',
+    file_size_exceeded: 'File size exceeded.',
+    mime_type_not_allowed: 'MIME type is not allowed.',
   },
   oidc: {
     aborted: 'The end-user aborted interaction.',
@@ -32,31 +39,35 @@ const errors = {
     provider_error: 'OIDC Internal Error: {{message}}.',
   },
   user: {
-    username_exists_register: 'The username has been registered.',
-    email_exists_register: 'The email address has been registered.',
-    phone_exists_register: 'The phone number has been registered.',
+    username_already_in_use: 'This username is already in use.',
+    email_already_in_use: 'This email is associated with an existing account.',
+    phone_already_in_use: 'This phone number is associated with an existing account.',
     invalid_email: 'Invalid email address.',
     invalid_phone: 'Invalid phone number.',
-    email_not_exists: 'The email address has not been registered yet.',
-    phone_not_exists: 'The phone number has not been registered yet.',
-    identity_not_exists: 'The social account has not been registered yet.',
-    identity_exists: 'The social account has been registered.',
-    invalid_role_names: 'role names ({{roleNames}}) are not valid',
+    email_not_exist: 'The email address has not been registered yet.',
+    phone_not_exist: 'The phone number has not been registered yet.',
+    identity_not_exist: 'The social account has not been registered yet.',
+    identity_already_in_use: 'The social account has been associated with an existing account.',
+    social_account_exists_in_profile: 'You have already associated this social account.',
     cannot_delete_self: 'You cannot delete yourself.',
-    sign_up_method_not_enabled: 'This sign up method is not enabled.',
-    sign_in_method_not_enabled: 'This sign in method is not enabled.',
+    sign_up_method_not_enabled: 'This sign-up method is not enabled.',
+    sign_in_method_not_enabled: 'This sign-in method is not enabled.',
     same_password: 'New password cannot be the same as your old password.',
-    require_password: 'You need to set a password before signing-in.',
-    password_exists: 'Your password has been set.',
-    require_username: 'You need to set a username before signing-in.',
-    username_exists: 'This username is already in use.',
-    require_email: 'You need to add an email address before signing-in.',
-    email_exists: 'This email is associated with an existing account.',
-    require_sms: 'You need to add a phone number before signing-in.',
-    sms_exists: 'This phone number is associated with an existing account.',
-    require_email_or_sms: 'You need to add an email address or phone number before signing-in.',
+    password_required_in_profile: 'You need to set a password before signing-in.',
+    new_password_required_in_profile: 'You need to set a new password.',
+    password_exists_in_profile: 'Password already exists in your profile.',
+    username_required_in_profile: 'You need to set a username before signing-in.',
+    username_exists_in_profile: 'Username already exists in your profile.',
+    email_required_in_profile: 'You need to add an email address before signing-in.',
+    email_exists_in_profile: 'Your profile has already associated with an email address.',
+    phone_required_in_profile: 'You need to add a phone number before signing-in.',
+    phone_exists_in_profile: 'Your profile has already associated with a phone number.',
+    email_or_phone_required_in_profile:
+      'You need to add an email address or phone number before signing-in.',
     suspended: 'This account is suspended.',
-    user_not_exist: 'User with {{ identity }} has not been registered yet',
+    user_not_exist: 'User with {{ identifier }} does not exist.',
+    missing_profile: 'You need to provide additional info before signing-in.',
+    role_exists: 'The role id {{roleId}} is already been added to this user',
   },
   password: {
     unsupported_encryption_method: 'The encryption method {{name}} is not supported.',
@@ -64,7 +75,7 @@ const errors = {
   },
   session: {
     not_found: 'Session not found. Please go back and sign in again.',
-    invalid_credentials: 'Invalid credentials. Please check your input.',
+    invalid_credentials: 'Incorrect account or password. Please check your input.',
     invalid_sign_in_method: 'Current sign-in method is not available.',
     invalid_connector_id: 'Unable to find available connector with id {{connectorId}}.',
     insufficient_info: 'Insufficient sign-in info.',
@@ -77,9 +88,16 @@ const errors = {
     unauthorized: 'Please sign in first.',
     unsupported_prompt_name: 'Unsupported prompt name.',
     forgot_password_not_enabled: 'Forgot password is not enabled.',
+    verification_failed:
+      'The verification was not successful. Restart the verification flow and try again.',
+    connector_validation_session_not_found:
+      'The connector session for token validation is not found.',
+    identifier_not_found: 'User identifier not found. Please go back and sign in again.',
+    interaction_not_found:
+      'Interaction session not found. Please go back and start the session again.',
   },
   connector: {
-    general: 'An unexpected error occurred in connector.{{errorDescription}}',
+    general: 'Error occurred in connector: {{errorDescription}}',
     not_found: 'Cannot find any available connector for type: {{type}}.',
     not_enabled: 'The connector is not enabled.',
     invalid_metadata: "The connector's metadata is invalid.",
@@ -98,27 +116,33 @@ const errors = {
     social_auth_code_invalid: 'Unable to get access token, please check authorization code.',
     more_than_one_sms: 'The number of SMS connectors is larger then 1.',
     more_than_one_email: 'The number of Email connectors is larger then 1.',
+    more_than_one_connector_factory:
+      'Found multiple connector factories (with id {{connectorIds}}), you may uninstall unnecessary ones.', // UNTRANSLATED
     db_connector_type_mismatch: 'There is a connector in the DB that does not match the type.',
     not_found_with_connector_id: 'Can not find connector with given standard connector id.',
     multiple_instances_not_supported:
       'Can not create multiple instance with picked standard connector.',
     invalid_type_for_syncing_profile: 'You can only sync user profile with social connectors.',
+    can_not_modify_target: "The connector 'target' can not be modified.",
+    should_specify_target: "You should specify 'target'.",
+    multiple_target_with_same_platform:
+      'You can not have multiple social connectors that have same target and platform.',
+    cannot_overwrite_metadata_for_non_standard_connector:
+      "This connector's 'metadata' cannot be overwritten.",
   },
-  passcode: {
+  verification_code: {
     phone_email_empty: 'Both phone and email are empty.',
-    not_found: 'Passcode not found. Please send passcode first.',
-    phone_mismatch: 'Phone mismatch. Please request a new passcode.',
-    email_mismatch: 'Email mismatch. Please request a new passcode.',
-    code_mismatch: 'Invalid passcode.',
-    expired: 'Passcode has expired. Please request a new passcode.',
-    exceed_max_try: 'Passcode verification limitation exceeded. Please request a new passcode.',
+    not_found: 'Verification code not found. Please send verification code first.',
+    phone_mismatch: 'Phone mismatch. Please request a new verification code.',
+    email_mismatch: 'Email mismatch. Please request a new verification code.',
+    code_mismatch: 'Invalid verification code.',
+    expired: 'Verification code has expired. Please request a new verification code.',
+    exceed_max_try:
+      'Verification code retries limitation exceeded. Please request a new verification code.',
   },
   sign_in_experiences: {
     empty_content_url_of_terms_of_use:
       'Empty "Terms of use" content URL. Please add the content URL if "Terms of use" is enabled.',
-    empty_logo: 'Please enter your logo URL',
-    empty_slogan:
-      'Empty branding slogan. Please add a branding slogan if a UI style containing the slogan is selected.',
     empty_social_connectors:
       'Empty social connectors. Please add enabled social connectors when the social sign-in method is enabled.',
     enabled_connector_not_found: 'Enabled {{type}} connector not found.',
@@ -152,6 +176,24 @@ const errors = {
   },
   log: {
     invalid_type: 'The log type is invalid.',
+  },
+  role: {
+    name_in_use: 'This role name {{name}} is already in use',
+    scope_exists: 'The scope id {{scopeId}} has already been added to this role',
+    user_exists: 'The user id {{userId}} is already been added to this role',
+    default_role_missing:
+      'Some of the default roleNames does not exist in database, please ensure to create roles first',
+    internal_role_violation:
+      'You may be trying to update or delete an internal role which is forbidden by Logto. If you are creating a new role, try another name that does not start with "#internal:".',
+  },
+  scope: {
+    name_exists: 'The scope name {{name}} is already in use',
+    name_with_space: 'The name of the scope cannot contain any spaces.',
+  },
+  storage: {
+    not_configured: 'Storage provider is not configured.',
+    missing_parameter: 'Missing parameter {{parameter}} for storage provider.',
+    upload_error: 'Failed to upload file to the storage provider.',
   },
 };
 

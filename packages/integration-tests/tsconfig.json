@@ -3,13 +3,13 @@
   "compilerOptions": {
     "isolatedModules": false,
     "allowJs": true,
-    "noEmit": true,
+    "outDir": "lib",
     "baseUrl": ".",
     "paths": {
-      "@/*": [
+      "#src/*": [
         "src/*"
       ]
     }
   },
-  "include": ["tests", "src", "jest.*.ts", "jest.setup.js"]
+  "include": ["src"]
 }

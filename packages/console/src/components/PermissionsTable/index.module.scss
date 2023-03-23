@@ -1,0 +1,36 @@
+@use '@/scss/underscore' as _;
+
+.permissionTable {
+  flex: 1;
+  margin-bottom: _.unit(6);
+  color: var(--color-text);
+
+  .filter {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .searchInput {
+      width: 306px;
+    }
+  }
+
+  .name {
+    display: inline-block;
+    max-width: 100%;
+    vertical-align: bottom;
+    padding: _.unit(1) _.unit(2);
+    border-radius: 6px;
+    background: var(--color-neutral-95);
+    @include _.text-ellipsis;
+  }
+
+  .description {
+    @include _.text-ellipsis;
+  }
+
+  .link {
+    display: block;
+    @include _.text-ellipsis;
+  }
+}

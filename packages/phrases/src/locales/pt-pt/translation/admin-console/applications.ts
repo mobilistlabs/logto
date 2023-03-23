@@ -1,7 +1,7 @@
 const applications = {
   title: 'Aplicações',
   subtitle:
-    'Configure um aplicativo móvel, de página única ou tradicional para usar o Logto para autenticação',
+    'Configure um aplicativo móvel, de página única, machine to machine ou tradicional para usar o Logto para autenticação',
   create: 'Criar aplicação',
   application_name: 'Nome da aplicação',
   application_name_placeholder: 'Ex: Site Empresa',
@@ -44,6 +44,9 @@ const applications = {
       'Agora siga as etapas abaixo para concluir as configurações da aplicação. Selecione o tipo de SDK para continuar.',
     description_by_sdk: 'Este guia de início rápido demonstra como integrar o Logto em {{sdk}}',
   },
+  placeholder_title: 'Select an application type to continue', // UNTRANSLATED
+  placeholder_description:
+    'Logto uses an application entity for OIDC to help with tasks such as identifying your apps, managing sign-in, and creating audit logs.', // UNTRANSLATED
 };
 
 export default applications;

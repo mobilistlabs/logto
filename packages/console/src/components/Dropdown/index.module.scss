@@ -21,19 +21,11 @@
 }
 
 .title {
-  @include _.subhead-cap;
-  padding: _.unit(3);
+  @include _.section-head-1;
 }
 
 .overlay {
   background: transparent;
   position: fixed;
   inset: 0;
-}
-
-.list {
-  margin: 0;
-  padding: _.unit(1);
-  max-height: 288px;
-  overflow-y: auto;
 }

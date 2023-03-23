@@ -1,12 +1,65 @@
 import { readFile } from 'fs/promises';
 
 import type { LogtoOidcConfigType } from '@logto/schemas';
-import { LogtoOidcConfigKey } from '@logto/schemas';
-import { getEnv, getEnvAsStringArray } from '@silverhand/essentials';
+import { LogtoOidcConfigKey, logtoConfigGuards } from '@logto/schemas';
+import { getEnvAsStringArray } from '@silverhand/essentials';
+import chalk from 'chalk';
+import type { DatabaseTransactionConnection } from 'slonik';
+import { z } from 'zod';
 
-import { generateOidcCookieKey, generateOidcPrivateKey } from '../utilities.js';
+import { getRowsByKeys, updateValueByKey } from '../../../queries/logto-config.js';
+import { log } from '../../../utils.js';
+import { generateOidcCookieKey, generateOidcPrivateKey } from '../utils.js';
 
 const isBase64FormatPrivateKey = (key: string) => !key.includes('-');
+
+export const seedOidcConfigs = async (pool: DatabaseTransactionConnection, tenantId: string) => {
+  const tenantPrefix = `[${tenantId}]`;
+  const configGuard = z.object({
+    key: z.nativeEnum(LogtoOidcConfigKey),
+    value: z.unknown(),
+  });
+  const { rows } = await getRowsByKeys(pool, tenantId, Object.values(LogtoOidcConfigKey));
+  // Filter out valid keys that hold a valid value
+  const result = await Promise.all(
+    rows.map<Promise<LogtoOidcConfigKey | undefined>>(async (row) => {
+      try {
+        const { key, value } = await configGuard.parseAsync(row);
+        await logtoConfigGuards[key].parseAsync(value);
+
+        return key;
+      } catch {}
+    })
+  );
+  const existingKeys = new Set(result.filter(Boolean));
+
+  const validOptions = Object.values(LogtoOidcConfigKey).filter((key) => {
+    const included = existingKeys.has(key);
+
+    if (included) {
+      log.info(tenantPrefix, `Key ${chalk.green(key)} exists, skipping`);
+    }
+
+    return !included;
+  });
+
+  // The awaits in loop is intended since we'd like to log info in sequence
+  /* eslint-disable no-await-in-loop */
+  for (const key of validOptions) {
+    const { value, fromEnv } = await oidcConfigReaders[key]();
+
+    if (fromEnv) {
+      log.info(tenantPrefix, `Read config ${chalk.green(key)} from env`);
+    } else {
+      log.info(tenantPrefix, `Generated config ${chalk.green(key)}`);
+    }
+
+    await updateValueByKey(pool, tenantId, key, value);
+  }
+  /* eslint-enable no-await-in-loop */
+
+  log.succeed(tenantPrefix, 'Seed OIDC config');
+};
 
 /**
  * Each config reader will do the following things in order:
@@ -66,12 +119,5 @@ export const oidcConfigReaders: {
     const keys = getEnvAsStringArray(envKey);
 
     return { value: keys.length > 0 ? keys : [generateOidcCookieKey()], fromEnv: keys.length > 0 };
-  },
-  [LogtoOidcConfigKey.RefreshTokenReuseInterval]: async () => {
-    const envKey = 'OIDC_REFRESH_TOKEN_REUSE_INTERVAL';
-    const raw = Number(getEnv(envKey));
-    const value = Math.max(3, raw || 0);
-
-    return { value, fromEnv: raw === value };
   },
 };

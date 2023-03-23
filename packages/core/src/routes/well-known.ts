@@ -1,69 +1,92 @@
-import type { ConnectorMetadata } from '@logto/connector-kit';
-import { ConnectorType } from '@logto/connector-kit';
-import { adminConsoleApplicationId } from '@logto/schemas/lib/seeds/index.js';
-import etag from 'etag';
-import type { Provider } from 'oidc-provider';
+import { isBuiltInLanguageTag } from '@logto/phrases-ui';
+import { adminTenantId } from '@logto/schemas';
+import { conditionalArray } from '@silverhand/essentials';
+import { z } from 'zod';
 
-import { getLogtoConnectors } from '#src/connectors/index.js';
-import { getApplicationIdFromInteraction } from '#src/lib/session.js';
-import { getSignInExperienceForApplication } from '#src/lib/sign-in-experience/index.js';
+import { wellKnownCache } from '#src/caches/well-known.js';
+import { EnvSet, getTenantEndpoint } from '#src/env-set/index.js';
+import RequestError from '#src/errors/RequestError/index.js';
+import detectLanguage from '#src/i18n/detect-language.js';
+import { guardFullSignInExperience } from '#src/libraries/sign-in-experience/index.js';
+import koaGuard from '#src/middleware/koa-guard.js';
+import { noCache } from '#src/utils/request.js';
 
-import type { AnonymousRouter } from './types.js';
+import type { AnonymousRouter, RouterInitArgs } from './types.js';
 
-export default function wellKnownRoutes<T extends AnonymousRouter>(router: T, provider: Provider) {
-  router.get(
-    '/.well-known/sign-in-exp',
-    async (ctx, next) => {
-      const applicationId = await getApplicationIdFromInteraction(ctx, provider);
+export default function wellKnownRoutes<T extends AnonymousRouter>(
+  ...[router, { libraries, id: tenantId }]: RouterInitArgs<T>
+) {
+  const {
+    signInExperiences: { getSignInExperience, getFullSignInExperience },
+    phrases: { getPhrases, getAllCustomLanguageTags },
+  } = libraries;
 
-      const [signInExperience, logtoConnectors] = await Promise.all([
-        getSignInExperienceForApplication(applicationId),
-        getLogtoConnectors(),
-      ]);
-
-      const forgotPassword = {
-        sms: logtoConnectors.some(
-          ({ type, dbEntry: { enabled } }) => type === ConnectorType.Sms && enabled
-        ),
-        email: logtoConnectors.some(
-          ({ type, dbEntry: { enabled } }) => type === ConnectorType.Email && enabled
-        ),
-      };
-
-      const socialConnectors =
-        applicationId === adminConsoleApplicationId
-          ? []
-          : signInExperience.socialSignInConnectorTargets.reduce<
-              Array<ConnectorMetadata & { id: string }>
-            >((previous, connectorTarget) => {
-              const connectors = logtoConnectors.filter(
-                ({ metadata: { target }, dbEntry: { enabled } }) =>
-                  target === connectorTarget && enabled
-              );
-
-              return [
-                ...previous,
-                ...connectors.map(({ metadata, dbEntry: { id } }) => ({ ...metadata, id })),
-              ];
-            }, []);
+  if (tenantId === adminTenantId) {
+    router.get('/.well-known/endpoints/:tenantId', async (ctx, next) => {
+      if (!ctx.params.tenantId) {
+        throw new RequestError('request.invalid_input');
+      }
 
       ctx.body = {
-        ...signInExperience,
-        socialConnectors,
-        forgotPassword,
+        user: getTenantEndpoint(ctx.params.tenantId, EnvSet.values),
       };
 
       return next();
-    },
+    });
+  }
+
+  router.get(
+    '/.well-known/sign-in-exp',
+    koaGuard({ response: guardFullSignInExperience, status: 200 }),
     async (ctx, next) => {
-      await next();
-
-      ctx.response.etag = etag(JSON.stringify(ctx.body));
-
-      if (ctx.fresh) {
-        ctx.status = 304;
-        ctx.body = null;
+      if (noCache(ctx.request)) {
+        wellKnownCache.invalidate(tenantId, ['sie', 'sie-full']);
+        console.log('invalidated');
       }
+
+      ctx.body = await getFullSignInExperience();
+
+      return next();
+    }
+  );
+
+  router.get(
+    '/.well-known/phrases',
+    koaGuard({
+      query: z.object({
+        lng: z.string().optional(),
+      }),
+      response: z.record(z.string().or(z.record(z.unknown()))),
+      status: 200,
+    }),
+    async (ctx, next) => {
+      if (noCache(ctx.request)) {
+        wellKnownCache.invalidate(tenantId, ['sie', 'phrases-lng-tags', 'phrases']);
+      }
+
+      const {
+        query: { lng },
+      } = ctx.guard;
+
+      const {
+        languageInfo: { autoDetect, fallbackLanguage },
+      } = await getSignInExperience();
+
+      const acceptableLanguages = conditionalArray<string | string[]>(
+        lng,
+        autoDetect && detectLanguage(ctx),
+        fallbackLanguage
+      );
+      const customLanguages = await getAllCustomLanguageTags();
+      const language =
+        acceptableLanguages.find(
+          (tag) => isBuiltInLanguageTag(tag) || customLanguages.includes(tag)
+        ) ?? 'en';
+
+      ctx.set('Content-Language', language);
+      ctx.body = await getPhrases(language, customLanguages);
+
+      return next();
     }
   );
 }

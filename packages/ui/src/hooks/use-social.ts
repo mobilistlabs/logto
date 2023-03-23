@@ -1,19 +1,19 @@
 import type { ConnectorMetadata } from '@logto/schemas';
 import { useCallback, useContext } from 'react';
 
-import { invokeSocialSignIn } from '@/apis/social';
+import { getSocialAuthorizationUrl } from '@/apis/interaction';
 import { getLogtoNativeSdk, isNativeWebview } from '@/utils/native-sdk';
 import { generateState, storeState, buildSocialLandingUri } from '@/utils/social-connectors';
 
 import useApi from './use-api';
+import useErrorHandler from './use-error-handler';
 import { PageContext } from './use-page-context';
-import useTerms from './use-terms';
 
 const useSocial = () => {
   const { experienceSettings, theme } = useContext(PageContext);
-  const { termsValidation } = useTerms();
 
-  const { run: asyncInvokeSocialSignIn } = useApi(invokeSocialSignIn);
+  const handleError = useErrorHandler();
+  const asyncInvokeSocialSignIn = useApi(getSocialAuthorizationUrl);
 
   const nativeSignInHandler = useCallback((redirectTo: string, connector: ConnectorMetadata) => {
     const { id: connectorId, platform } = connector;
@@ -31,20 +31,22 @@ const useSocial = () => {
 
   const invokeSocialSignInHandler = useCallback(
     async (connector: ConnectorMetadata) => {
-      if (!(await termsValidation())) {
-        return;
-      }
-
       const { id: connectorId } = connector;
 
       const state = generateState();
       storeState(state, connectorId);
 
-      const result = await asyncInvokeSocialSignIn(
+      const [error, result] = await asyncInvokeSocialSignIn(
         connectorId,
         state,
         `${window.location.origin}/callback/${connectorId}`
       );
+
+      if (error) {
+        await handleError(error);
+
+        return;
+      }
 
       if (!result?.redirectTo) {
         return;
@@ -60,7 +62,7 @@ const useSocial = () => {
       // Invoke Web Social Sign In flow
       window.location.assign(result.redirectTo);
     },
-    [asyncInvokeSocialSignIn, nativeSignInHandler, termsValidation]
+    [asyncInvokeSocialSignIn, handleError, nativeSignInHandler]
   );
 
   return {

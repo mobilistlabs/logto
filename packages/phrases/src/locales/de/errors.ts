@@ -1,4 +1,8 @@
 const errors = {
+  request: {
+    invalid_input: 'Eingabe ist ungültig. {{details}}',
+    general: 'Es ist ein Fehler bei der Anfrage aufgetreten.',
+  },
   auth: {
     authorization_header_missing: 'Autorisierungs-Header fehlt.',
     authorization_token_type_not_supported: 'Autorisierungs-Typ wird nicht unterstützt.',
@@ -7,11 +11,15 @@ const errors = {
     expected_role_not_found:
       'Erwartete Rolle nicht gefunden. Bitte überprüfe deine Rollen und Berechtigungen.',
     jwt_sub_missing: '`sub` fehlt in JWT.',
-    require_re_authentication: 'Re-authentication is required to perform a protected action.', // UNTRANSLATED
+    require_re_authentication:
+      'Zur Durchführung einer geschützten Aktion ist eine erneute Authentifizierung erforderlich.',
   },
   guard: {
     invalid_input: 'Die Anfrage {{type}} ist ungültig.',
     invalid_pagination: 'Die Paginierung der Anfrage ist ungültig.',
+    can_not_get_tenant_id: 'Die tenant_id konnte nicht aus der Anfrage abgerufen werden.',
+    file_size_exceeded: 'Dateigröße überschritten.',
+    mime_type_not_allowed: 'Der MIME-Typ ist nicht erlaubt.',
   },
   oidc: {
     aborted: 'Der Endnutzer hat die Interaktion abgebrochen.',
@@ -32,31 +40,40 @@ const errors = {
     provider_error: 'OIDC interner Fehler: {{message}}.',
   },
   user: {
-    username_exists_register: 'Der Benutzername wurde registriert.',
-    email_exists_register: 'Die E-Mail wurde registriert.',
-    phone_exists_register: 'Die Telefonnummer wurde registriert.',
+    username_already_in_use: 'Dieser Benutzername wird bereits verwendet.',
+    email_already_in_use: 'Diese E-Mail-Adresse ist mit einem vorhandenen Konto verknüpft.',
+    phone_already_in_use: 'Diese Telefonnummer ist mit einem vorhandenen Konto verknüpft.',
     invalid_email: 'Ungültige E-Mail.',
     invalid_phone: 'Ungültige Telefonnummer.',
-    email_not_exists: 'Die E-Mail wurde noch nicht registriert.',
-    phone_not_exists: 'Die Telefonnummer wurde noch nicht registriert.',
-    identity_not_exists: 'Die Identität wurde noch nicht registriert.',
-    identity_exists: 'Die Identität wurde registriert.',
-    invalid_role_names: 'Rollennamen ({{roleNames}}) sind ungültig',
+    email_not_exist: 'Die E-Mail wurde noch nicht registriert.',
+    phone_not_exist: 'Die Telefonnummer wurde noch nicht registriert.',
+    identity_not_exist: 'Die Identität wurde noch nicht registriert.',
+    identity_already_in_use: 'Die Identität wurde registriert.',
+    social_account_exists_in_profile: 'Sie haben diesen Social-Media-Account bereits verknüpft.',
     cannot_delete_self: 'Du kannst dich nicht selbst löschen.',
-    sign_up_method_not_enabled: 'This sign up method is not enabled.', // UNTRANSLATED
-    sign_in_method_not_enabled: 'This sign in method is not enabled.', // UNTRANSLATED
+    sign_up_method_not_enabled: 'Diese Anmeldeart ist nicht aktiviert.',
+    sign_in_method_not_enabled: 'Diese Anmeldemethode ist nicht aktiviert.',
     same_password: 'Das neue Passwort muss sich vom alten unterscheiden.',
-    require_password: 'You need to set a password before signing-in.', // UNTRANSLATED
-    password_exists: 'Your password has been set.', // UNTRANSLATED
-    require_username: 'You need to set a username before signing-in.', // UNTRANSLATED
-    username_exists: 'This username is already in use.', // UNTRANSLATED
-    require_email: 'You need to add an email address before signing-in.', // UNTRANSLATED
-    email_exists: 'This email is associated with an existing account.', // UNTRANSLATED
-    require_sms: 'You need to add a phone number before signing-in.', // UNTRANSLATED
-    sms_exists: 'This phone number is associated with an existing account.', // UNTRANSLATED
-    require_email_or_sms: 'You need to add an email address or phone number before signing-in.', // UNTRANSLATED
-    suspended: 'This account is suspended.', // UNTRANSLATED
-    user_not_exist: 'User with {{ identity }} has not been registered yet', // UNTRANSLATED,
+    password_required_in_profile:
+      'Sie müssen ein Passwort festlegen, bevor Sie sich anmelden können.',
+    new_password_required_in_profile: 'Sie müssen ein neues Passwort festlegen.',
+    password_exists_in_profile: 'Das Passwort ist bereits in Ihrem Profil vorhanden.',
+    username_required_in_profile:
+      'Sie müssen einen Benutzernamen festlegen, bevor Sie sich anmelden können.',
+    username_exists_in_profile: 'Der Benutzername ist bereits in Ihrem Profil vorhanden.',
+    email_required_in_profile:
+      'Sie müssen eine E-Mail-Adresse hinzufügen, bevor Sie sich anmelden können.',
+    email_exists_in_profile: 'Ihr Profil ist bereits mit einer E-Mail-Adresse verknüpft.',
+    phone_required_in_profile:
+      'Sie müssen eine Telefonnummer hinzufügen, bevor Sie sich anmelden können.',
+    phone_exists_in_profile: 'Ihr Profil ist bereits mit einer Telefonnummer verknüpft.',
+    email_or_phone_required_in_profile:
+      'Sie müssen eine E-Mail-Adresse oder eine Telefonnummer hinzufügen, bevor Sie sich anmelden können.',
+    suspended: 'Dieses Konto wurde gesperrt.',
+    user_not_exist: 'Der Benutzer mit {{ identifier }} existiert nicht.',
+    missing_profile:
+      'Sie müssen zusätzliche Informationen angeben, bevor Sie sich anmelden können.',
+    role_exists: 'Die Rollen-ID {{roleId}} wurde diesem Benutzer bereits hinzugefügt.',
   },
   password: {
     unsupported_encryption_method: 'Die Verschlüsselungsmethode {{name}} wird nicht unterstützt.',
@@ -77,64 +94,90 @@ const errors = {
     unauthorized: 'Bitte melde dich erst an.',
     unsupported_prompt_name: 'Nicht unterstützter prompt Name.',
     forgot_password_not_enabled: 'Forgot password is not enabled.',
+    verification_failed:
+      'Die Verifizierung war nicht erfolgreich. Starte die Verifizierung neu und versuche es erneut.',
+    connector_validation_session_not_found:
+      'Die Connector-Sitzung zur Token-Validierung wurde nicht gefunden.',
+    identifier_not_found:
+      'Benutzerkennung nicht gefunden. Bitte gehen Sie zurück und melden Sie sich erneut an.',
+    interaction_not_found:
+      'Interaktionssitzung nicht gefunden. Bitte gehen Sie zurück und starten Sie die Sitzung erneut.',
   },
   connector: {
     // UNTRANSLATED
-    general: 'An unexpected error occurred in connector.{{errorDescription}}',
-    not_found: 'Cannot find any available connector for type: {{type}}.',
-    not_enabled: 'The connector is not enabled.',
-    invalid_metadata: "The connector's metadata is invalid.",
-    invalid_config_guard: "The connector's config guard is invalid.",
-    unexpected_type: "The connector's type is unexpected.",
-    invalid_request_parameters: 'The request is with wrong input parameter(s).',
-    insufficient_request_parameters: 'The request might miss some input parameters.',
-    invalid_config: "The connector's config is invalid.",
-    invalid_response: "The connector's response is invalid.",
-    template_not_found: 'Unable to find correct template in connector config.',
-    not_implemented: '{{method}}: has not been implemented yet.',
-    social_invalid_access_token: "The connector's access token is invalid.",
-    invalid_auth_code: "The connector's auth code is invalid.",
-    social_invalid_id_token: "The connector's id token is invalid.",
-    authorization_failed: "The user's authorization process is unsuccessful.",
-    social_auth_code_invalid: 'Unable to get access token, please check authorization code.',
-    more_than_one_sms: 'The number of SMS connectors is larger then 1.',
-    more_than_one_email: 'The number of Email connectors is larger then 1.',
-    db_connector_type_mismatch: 'There is a connector in the DB that does not match the type.',
-    not_found_with_connector_id: 'Can not find connector with given standard connector id.',
+    general: 'Fehler aufgetreten im Connector: {{errorDescription}}',
+    not_found: 'Kein verfügbarer Connector für Typ {{type}} gefunden.',
+    not_enabled: 'Der Connector ist nicht aktiviert.',
+    invalid_metadata: 'Die Metadaten des Connectors sind ungültig.',
+    invalid_config_guard: 'Die Konfiguration des Connectors ist ungültig.',
+    unexpected_type: 'Der Typ des Connectors ist unerwartet.',
+    invalid_request_parameters: 'Die Anfrage enthält falsche Eingabeparameter.',
+    insufficient_request_parameters:
+      'Die Anfrage enthält möglicherweise nicht alle erforderlichen Eingabeparameter.',
+    invalid_config: 'Die Konfiguration des Connectors ist ungültig.',
+    invalid_response: 'Die Antwort des Connectors ist ungültig.',
+    template_not_found:
+      'Die richtige Vorlage in der Connector-Konfiguration konnte nicht gefunden werden.',
+    not_implemented: '{{method}}: wurde noch nicht implementiert.',
+    social_invalid_access_token: 'Der Access Token des Connectors ist ungültig.',
+    invalid_auth_code: 'Der Authentifizierungscode des Connectors ist ungültig.',
+    social_invalid_id_token: 'Der ID-Token des Connectors ist ungültig.',
+    authorization_failed: 'Der Autorisierungsprozess des Benutzers war erfolglos.',
+    social_auth_code_invalid:
+      'Es konnte kein Access Token abgerufen werden. Bitte prüfen Sie den Autorisierungscode.',
+    more_than_one_sms: 'Die Anzahl der SMS-Connectors ist größer als 1.',
+    more_than_one_email: 'Die Anzahl der E-Mail-Connectors ist größer als 1.',
+    more_than_one_connector_factory:
+      'Mehrere Connector-Fabriken gefunden (mit ID {{connectorIds}}). Sie können unnötige Fabriken deinstallieren.',
+    db_connector_type_mismatch:
+      'Es gibt einen Connector in der Datenbank, der nicht dem Typ entspricht.',
+    not_found_with_connector_id:
+      'Connector mit der angegebenen Standard-Connector-ID konnte nicht gefunden werden.',
     multiple_instances_not_supported:
-      'Can not create multiple instance with picked standard connector.',
-    invalid_type_for_syncing_profile: 'You can only sync user profile with social connectors.',
+      'Es können keine mehreren Instanzen mit dem ausgewählten Standard-Connector erstellt werden.',
+    invalid_type_for_syncing_profile:
+      'Sie können nur Benutzerprofile mit sozialen Connectors synchronisieren.',
+    can_not_modify_target: "Der 'target'-Connector kann nicht geändert werden.",
+    should_specify_target: "Sie sollten den 'target' angeben.",
+    multiple_target_with_same_platform:
+      'Sie können keine mehreren sozialen Connectors haben, die das gleiche Ziel und die gleiche Plattform haben.',
+    cannot_overwrite_metadata_for_non_standard_connector:
+      "Die 'Metadaten' dieses Connectors können nicht überschrieben werden.",
   },
-  passcode: {
-    phone_email_empty: 'Telefonnummer oder E-Mail darf nicht leer sein.',
-    not_found: 'Passcode nicht gefunden. Bitte sende erst einen Passcode.',
+  verification_code: {
+    phone_email_empty: 'Sowohl Telefon als auch E-Mail sind leer.',
+    not_found: 'Bestätigungscode nicht gefunden. Bitte senden Sie zuerst den Bestätigungscode.',
     phone_mismatch:
-      'Telefonnummer stimmt nicht mit Passcode überein. Frage einen neuen Passcode an.',
-    email_mismatch: 'E-Mail stimmt nicht mit Passcode überein. Frage einen neuen Passcode an.',
-    code_mismatch: 'Ungültiger Passcode.',
-    expired: 'Passcode ist abgelaufen. Frage einen neuen Passcode an.',
-    exceed_max_try: 'Passcode wurde zu oft versucht. Frage einen neuen Passcode an.',
+      'Telefonnummer stimmt nicht überein. Bitte fordern Sie einen neuen Bestätigungscode an.',
+    email_mismatch:
+      'E-Mail stimmt nicht überein. Bitte fordern Sie einen neuen Bestätigungscode an.',
+    code_mismatch: 'Ungültiger Bestätigungscode.',
+    expired: 'Bestätigungscode ist abgelaufen. Bitte fordern Sie einen neuen Bestätigungscode an.',
+    exceed_max_try:
+      'Die Begrenzung für die Anzahl der Bestätigungscode-Wiederholungen wurde überschritten. Bitte fordern Sie einen neuen Bestätigungscode an.',
   },
   sign_in_experiences: {
     empty_content_url_of_terms_of_use:
       'Leere "Nutzungsbedingungen" URL. Bitte füge die URL hinzu, wenn "Nutzungsbedingungen" aktiviert ist.',
-    empty_logo: 'Bitte füge eine Logo URL hinzu.',
-    empty_slogan:
-      'Leerer Branding-Slogan. Bitte füge einen Branding-Slogan hinzu, wenn ein UI-Stil ausgewählt wird, der den Slogan enthält.',
     empty_social_connectors:
       'Leere Social Connectors. Bitte füge aktivierte Social Connectoren hinzu, wenn Social Anmeldung aktiviert ist.',
     enabled_connector_not_found: 'Aktivierter {{type}} Connector nicht gefunden.',
     not_one_and_only_one_primary_sign_in_method:
       'Es darf nur eine primäre Anmeldemethode geben. Bitte überprüfe deine Eingabe.',
-    username_requires_password: 'Must enable set a password for username sign up identifier.', // UNTRANSLATED
-    passwordless_requires_verify: 'Must enable verify for email/phone sign up identifier.', // UNTRANSLATED
-    miss_sign_up_identifier_in_sign_in: 'Sign in methods must contain the sign up identifier.', // UNTRANSLATED
+    username_requires_password:
+      'Muss ein Passwort für den Benutzernamen zur Registrierung aktivieren.',
+    passwordless_requires_verify:
+      'Muss die Verifizierung für die Registrierung per E-Mail/Telefon aktivieren.',
+    miss_sign_up_identifier_in_sign_in:
+      'Anmeldeverfahren müssen den Registrierungs-Identifier enthalten.',
     password_sign_in_must_be_enabled:
-      'Password sign in must be enabled when set a password is required in sign up.', // UNTRANSLATED
+      'Die Passwort-Anmeldung muss aktiviert sein, wenn bei der Registrierung ein Passwort festgelegt wird.',
     code_sign_in_must_be_enabled:
-      'Verification code sign in must be enabled when set a password is not required in sign up.', // UNTRANSLATED
+      'Die Anmeldung mit Bestätigungscode muss aktiviert sein, wenn bei der Registrierung kein Passwort festgelegt wird.',
+
     unsupported_default_language: 'Die Sprache - {{language}} wird momentan nicht unterstützt.',
-    at_least_one_authentication_factor: 'You have to select at least one authentication factor.', // UNTRANSLATED
+    at_least_one_authentication_factor:
+      'Sie müssen mindestens einen Authentifizierungsfaktor auswählen.',
   },
   localization: {
     cannot_delete_default_language:
@@ -154,6 +197,24 @@ const errors = {
   },
   log: {
     invalid_type: 'Der Log Typ ist ungültig.',
+  },
+  role: {
+    name_in_use: 'Dieser Rollenname {{name}} wird bereits verwendet.',
+    scope_exists: 'Die Scope-ID {{scopeId}} wurde bereits zu dieser Rolle hinzugefügt.',
+    user_exists: 'Die Benutzer-ID {{userId}} wurde bereits zu dieser Rolle hinzugefügt.',
+    default_role_missing:
+      'Einige der Standardrollennamen sind in der Datenbank nicht vorhanden. Bitte stellen Sie sicher, dass Sie zuerst Rollen erstellen.',
+    internal_role_violation:
+      'Sie versuchen möglicherweise, eine interne Rolle zu aktualisieren oder zu löschen, was von Logto verboten ist. Wenn Sie eine neue Rolle erstellen, versuchen Sie es mit einem anderen Namen, der nicht mit "#internal:" beginnt.',
+  },
+  scope: {
+    name_exists: 'Der Scope-Name {{name}} ist bereits in Verwendung',
+    name_with_space: 'Der Name des Scopes darf keine Leerzeichen enthalten.',
+  },
+  storage: {
+    not_configured: 'Der Storage-Anbieter ist nicht konfiguriert.',
+    missing_parameter: 'Fehlender Parameter {{parameter}} für den Storage-Anbieter.',
+    upload_error: 'Das Hochladen der Datei zum Storage-Anbieter ist fehlgeschlagen.',
   },
 };
 

@@ -1,40 +1,49 @@
 import type { Application, CreateApplication } from '@logto/schemas';
 import { ApplicationType } from '@logto/schemas';
+import { pickDefault, createMockUtils } from '@logto/shared/esm';
 
 import { mockApplication } from '#src/__mocks__/index.js';
-import { findApplicationById } from '#src/queries/application.js';
-import { createRequester } from '#src/utils/test-utils.js';
+import { MockTenant } from '#src/test-utils/tenant.js';
 
-import applicationRoutes from './application.js';
+const { jest } = import.meta;
+const { mockEsmWithActual } = createMockUtils(jest);
 
-jest.mock('#src/queries/application.js', () => ({
-  findTotalNumberOfApplications: jest.fn(async () => ({ count: 10 })),
-  findAllApplications: jest.fn(async () => [mockApplication]),
-  findApplicationById: jest.fn(async () => mockApplication),
-  deleteApplicationById: jest.fn(),
-  insertApplication: jest.fn(
-    async (body: CreateApplication): Promise<Application> => ({
-      ...mockApplication,
-      ...body,
-      oidcClientMetadata: {
-        ...mockApplication.oidcClientMetadata,
-        ...body.oidcClientMetadata,
-      },
-    })
-  ),
-  updateApplicationById: jest.fn(
-    async (_, data: Partial<CreateApplication>): Promise<Application> => ({
-      ...mockApplication,
-      ...data,
-    })
-  ),
-}));
+const findApplicationById = jest.fn(async () => mockApplication);
+const deleteApplicationById = jest.fn();
 
-jest.mock('@logto/shared', () => ({
+await mockEsmWithActual('@logto/core-kit', () => ({
   // eslint-disable-next-line unicorn/consistent-function-scoping
-  buildIdGenerator: jest.fn(() => () => 'randomId'),
-  buildApplicationSecret: jest.fn(() => 'randomId'),
+  buildIdGenerator: () => () => 'randomId',
+  generateStandardId: () => 'randomId',
 }));
+
+const tenantContext = new MockTenant(undefined, {
+  applications: {
+    findTotalNumberOfApplications: jest.fn(async () => ({ count: 10 })),
+    findAllApplications: jest.fn(async () => [mockApplication]),
+    findApplicationById,
+    deleteApplicationById,
+    insertApplication: jest.fn(
+      async (body: CreateApplication): Promise<Application> => ({
+        ...mockApplication,
+        ...body,
+        oidcClientMetadata: {
+          ...mockApplication.oidcClientMetadata,
+          ...body.oidcClientMetadata,
+        },
+      })
+    ),
+    updateApplicationById: jest.fn(
+      async (_, data: Partial<CreateApplication>): Promise<Application> => ({
+        ...mockApplication,
+        ...data,
+      })
+    ),
+  },
+});
+
+const { createRequester } = await import('#src/utils/test-utils.js');
+const applicationRoutes = await pickDefault(import('./application.js'));
 
 const customClientMetadata = {
   corsAllowedOrigins: ['http://localhost:5000', 'http://localhost:5001', 'https://silverhand.com'],
@@ -42,13 +51,8 @@ const customClientMetadata = {
   refreshTokenTtl: 100_000_000,
 };
 
-const customOidcClientMetadata = {
-  redirectUris: [],
-  postLogoutRedirectUris: [],
-};
-
 describe('application route', () => {
-  const applicationRequest = createRequester({ authedRoutes: applicationRoutes });
+  const applicationRequest = createRequester({ authedRoutes: applicationRoutes, tenantContext });
 
   it('GET /applications', async () => {
     const response = await applicationRequest.get('/applications');
@@ -124,7 +128,10 @@ describe('application route', () => {
     const response = await applicationRequest.get('/applications/foo');
 
     expect(response.status).toEqual(200);
-    expect(response.body).toEqual(mockApplication);
+    expect(response.body).toEqual({
+      ...mockApplication,
+      isAdmin: false,
+    });
   });
 
   it('PATCH /applications/:applicationId', async () => {
@@ -218,8 +225,7 @@ describe('application route', () => {
   });
 
   it('DELETE /applications/:applicationId should throw if application not found', async () => {
-    const mockFindApplicationById = findApplicationById as jest.Mock;
-    mockFindApplicationById.mockRejectedValueOnce(new Error(' '));
+    deleteApplicationById.mockRejectedValueOnce(new Error(' '));
 
     await expect(applicationRequest.delete('/applications/foo')).resolves.toHaveProperty(
       'status',

@@ -1,7 +1,7 @@
 const applications = {
   title: 'Uygulamalar',
   subtitle:
-    'Kimlik doğrulaması için Logtoyu kullanmak üzere mobil, tek sayfa veya geleneksel bir uygulama ayarlayınız',
+    'Kimlik doğrulaması için Logtoyu kullanmak üzere mobil, tek sayfa, machine to machine veya geleneksel bir uygulama ayarlayınız',
   create: 'Uygulama oluştur',
   application_name: 'Uygulama adı',
   application_name_placeholder: 'Uygulamam',
@@ -46,6 +46,9 @@ const applications = {
     description_by_sdk:
       'Bu hızlı başlangıç kılavuzu, Logtoyu {{sdk}} uygulamasına nasıl entegre edeceğinizi gösterir',
   },
+  placeholder_title: 'Select an application type to continue', // UNTRANSLATED
+  placeholder_description:
+    'Logto uses an application entity for OIDC to help with tasks such as identifying your apps, managing sign-in, and creating audit logs.', // UNTRANSLATED
 };
 
 export default applications;

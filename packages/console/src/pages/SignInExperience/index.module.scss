@@ -9,6 +9,10 @@
     flex-shrink: 0;
   }
 
+  .error {
+    margin-top: _.unit(4);
+  }
+
   .tabs {
     margin: _.unit(4) 0;
   }
@@ -27,13 +31,16 @@
         margin-bottom: _.unit(3);
       }
 
-      .form {
+      > * {
         flex: 1;
-        margin-right: _.unit(3);
+        min-width: 540px;
+      }
+
+      .form {
+        margin-right: _.unit(6);
       }
 
       .preview {
-        flex: 1;
         position: sticky;
         top: _.unit(4);
         align-self: flex-start;

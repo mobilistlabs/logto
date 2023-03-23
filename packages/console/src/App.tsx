@@ -1,108 +1,91 @@
 import { UserScope } from '@logto/core-kit';
 import { LogtoProvider } from '@logto/react';
-import { adminConsoleApplicationId, managementResource } from '@logto/schemas/lib/seeds';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import { SWRConfig } from 'swr';
+import { adminConsoleApplicationId, PredefinedScope } from '@logto/schemas';
+import { conditionalArray, deduplicate } from '@silverhand/essentials';
+import { useContext } from 'react';
 
+import 'overlayscrollbars/styles/overlayscrollbars.css';
 import './scss/normalized.scss';
+import './scss/overlayscrollbars.scss';
+
 // eslint-disable-next-line import/no-unassigned-import
 import '@fontsource/roboto-mono';
-import AppBoundary from '@/components/AppBoundary';
-import AppContent from '@/components/AppContent';
-import ErrorBoundary from '@/components/ErrorBoundary';
-import Toast from '@/components/Toast';
-import useSwrOptions from '@/hooks/use-swr-options';
-import initI18n from '@/i18n/init';
-import ApiResourceDetails from '@/pages/ApiResourceDetails';
-import ApiResources from '@/pages/ApiResources';
-import ApplicationDetails from '@/pages/ApplicationDetails';
-import Applications from '@/pages/Applications';
-import AuditLogDetails from '@/pages/AuditLogDetails';
-import AuditLogs from '@/pages/AuditLogs';
-import Callback from '@/pages/Callback';
-import ConnectorDetails from '@/pages/ConnectorDetails';
-import Connectors from '@/pages/Connectors';
-import Dashboard from '@/pages/Dashboard';
-import GetStarted from '@/pages/GetStarted';
-import NotFound from '@/pages/NotFound';
-import Settings from '@/pages/Settings';
-import SignInExperience from '@/pages/SignInExperience';
-import UserDetails from '@/pages/UserDetails';
-import Users from '@/pages/Users';
-import Welcome from '@/pages/Welcome';
 
-import { getBasename } from './utilities/router';
+import CloudApp from '@/cloud/App';
+import { cloudApi, getManagementApi, meApi } from '@/consts/resources';
+import initI18n from '@/i18n/init';
+
+import { adminTenantEndpoint } from './consts';
+import { isCloud } from './consts/cloud';
+import ErrorBoundary from './containers/ErrorBoundary';
+import TenantAppContainer from './containers/TenantAppContainer';
+import AppConfirmModalProvider from './contexts/AppConfirmModalProvider';
+import AppEndpointsProvider from './contexts/AppEndpointsProvider';
+import { AppThemeProvider } from './contexts/AppThemeProvider';
+import TenantsProvider, { TenantsContext } from './contexts/TenantsProvider';
+import setTitle from './utils/set-title';
 
 void initI18n();
+setTitle();
 
-const Main = () => {
-  const swrOptions = useSwrOptions();
+function Content() {
+  const { tenants, isSettle, currentTenantId } = useContext(TenantsContext);
+
+  const resources = deduplicate(
+    conditionalArray(
+      // Explicitly add `currentTenantId` and deduplicate since the user may directly
+      // access a URL with Tenant ID, adding the ID from the URL here can possibly remove one
+      // additional redirect.
+      currentTenantId && getManagementApi(currentTenantId).indicator,
+      ...(tenants ?? []).map(({ id }) => getManagementApi(id).indicator),
+      isCloud && cloudApi.indicator,
+      meApi.indicator
+    )
+  );
+
+  const scopes = [
+    UserScope.Email,
+    UserScope.Identities,
+    UserScope.CustomData,
+    PredefinedScope.All,
+    ...conditionalArray(
+      isCloud && cloudApi.scopes.CreateTenant,
+      isCloud && cloudApi.scopes.ManageTenant
+    ),
+  ];
 
   return (
-    <ErrorBoundary>
-      <SWRConfig value={swrOptions}>
-        <AppBoundary>
-          <Toast />
-          <Routes>
-            <Route path="callback" element={<Callback />} />
-            <Route path="welcome" element={<Welcome />} />
-            <Route element={<AppContent />}>
-              <Route path="*" element={<NotFound />} />
-              <Route path="get-started" element={<GetStarted />} />
-              <Route path="applications">
-                <Route index element={<Applications />} />
-                <Route path="create" element={<Applications />} />
-                <Route path=":id">
-                  <Route index element={<Navigate replace to="settings" />} />
-                  <Route path="settings" element={<ApplicationDetails />} />
-                </Route>
-              </Route>
-              <Route path="api-resources">
-                <Route index element={<ApiResources />} />
-                <Route path=":id" element={<ApiResourceDetails />} />
-              </Route>
-              <Route path="connectors">
-                <Route index element={<Connectors />} />
-                <Route path="social" element={<Connectors />} />
-                <Route path=":connectorId" element={<ConnectorDetails />} />
-              </Route>
-              <Route path="users">
-                <Route index element={<Users />} />
-                <Route path=":userId" element={<UserDetails />} />
-                <Route path=":userId/logs" element={<UserDetails />} />
-                <Route path=":userId/logs/:logId" element={<AuditLogDetails />} />
-              </Route>
-              <Route path="sign-in-experience">
-                <Route index element={<Navigate replace to="branding" />} />
-                <Route path=":tab" element={<SignInExperience />} />
-              </Route>
-              <Route path="settings" element={<Settings />} />
-              <Route path="audit-logs">
-                <Route index element={<AuditLogs />} />
-                <Route path=":logId" element={<AuditLogDetails />} />
-              </Route>
-              <Route path="dashboard" element={<Dashboard />} />
-            </Route>
-          </Routes>
-        </AppBoundary>
-      </SWRConfig>
-    </ErrorBoundary>
-  );
-};
-
-const App = () => (
-  <BrowserRouter basename={getBasename('console', '5002')}>
     <LogtoProvider
       config={{
-        endpoint: window.location.origin,
+        endpoint: adminTenantEndpoint.href,
         appId: adminConsoleApplicationId,
-        resources: [managementResource.indicator],
-        scopes: [UserScope.Identities, UserScope.CustomData],
+        resources,
+        scopes,
       }}
     >
-      <Main />
+      <AppThemeProvider>
+        <ErrorBoundary>
+          {!isCloud || isSettle ? (
+            <AppEndpointsProvider>
+              <AppConfirmModalProvider>
+                <TenantAppContainer />
+              </AppConfirmModalProvider>
+            </AppEndpointsProvider>
+          ) : (
+            <CloudApp />
+          )}
+        </ErrorBoundary>
+      </AppThemeProvider>
     </LogtoProvider>
-  </BrowserRouter>
-);
+  );
+}
+
+function App() {
+  return (
+    <TenantsProvider>
+      <Content />
+    </TenantsProvider>
+  );
+}
 
 export default App;

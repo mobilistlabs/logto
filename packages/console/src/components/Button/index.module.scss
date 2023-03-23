@@ -7,7 +7,7 @@
   border: none;
   outline: none;
   border-radius: _.unit(2);
-  font: var(--font-button);
+  font: var(--font-label-2);
   transition: background-color 0.2s ease-in-out;
   white-space: nowrap;
   user-select: none;
@@ -40,12 +40,20 @@
   }
 
   .icon {
-    display: block;
-    width: 20px;
-    height: 20px;
+    display: flex;
+    align-items: center;
 
     &:not(:last-child) {
       margin-right: _.unit(2);
+    }
+  }
+
+  .trailingIcon {
+    display: flex;
+    align-items: center;
+
+    &:not(:first-child) {
+      margin-left: _.unit(2);
     }
   }
 
@@ -56,6 +64,18 @@
     &.text {
       height: 24px;
     }
+
+    .icon {
+      &:not(:last-child) {
+        margin-right: _.unit(1);
+      }
+    }
+
+    .trailingIcon {
+      &:not(:first-child) {
+        margin-left: _.unit(1);
+      }
+    }
   }
 
   &.medium {
@@ -63,7 +83,7 @@
     padding: 0 _.unit(4);
 
     &.text {
-      font: var(--font-subhead-1);
+      font: var(--font-label-1);
       height: 28px;
     }
   }
@@ -74,7 +94,7 @@
 
     &.text {
       // same as medium
-      font: var(--font-subhead-1);
+      font: var(--font-label-1);
       height: 28px;
     }
   }
@@ -87,8 +107,8 @@
     border-style: solid;
 
     &:disabled {
-      background: var(--color-neutral-70);
-      border-color: var(--color-neutral-70);
+      border-color: var(--color-border);
+      color: var(--color-neutral-70);
     }
 
     &:focus-visible {
@@ -199,7 +219,7 @@
   &.text {
     background: none;
     border-color: none;
-    font: var(--font-label-large);
+    font: var(--font-label-2);
     color: var(--color-text-link);
     padding: _.unit(0.5) _.unit(1);
     border-radius: 4px;
@@ -214,6 +234,44 @@
 
     &:not(:disabled):hover {
       background-color: var(--color-hover-variant);
+    }
+  }
+
+  &.violet {
+    background: var(--color-layer-1);
+    border: 1px solid var(--color-surface-5);
+    overflow: hidden;
+    position: relative;
+
+    .icon,
+    .trailingIcon {
+      color: var(--color-primary);
+    }
+
+    &:disabled {
+      color: var(--color-disabled);
+
+      .icon,
+      .trailingIcon {
+        color: var(--color-primary-80);
+      }
+    }
+
+    &:focus-visible {
+      border: 2px solid var(--color-primary-40);
+      outline: 4px solid var(--color-focused-variant);
+    }
+
+    &:not(:disabled):hover {
+      background-color: var(--color-hover-variant);
+
+      &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-color: var(--color-layer-1);
+        z-index: -1;
+      }
     }
   }
 }

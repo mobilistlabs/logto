@@ -3,11 +3,14 @@ import { object, string } from 'zod';
 
 import koaGuard from '#src/middleware/koa-guard.js';
 import koaPagination from '#src/middleware/koa-pagination.js';
-import { countLogs, findLogById, findLogs } from '#src/queries/log.js';
 
-import type { AuthedRouter } from './types.js';
+import type { AuthedRouter, RouterInitArgs } from './types.js';
 
-export default function logRoutes<T extends AuthedRouter>(router: T) {
+export default function logRoutes<T extends AuthedRouter>(
+  ...[router, { queries }]: RouterInitArgs<T>
+) {
+  const { countLogs, findLogById, findLogs } = queries.logs;
+
   router.get(
     '/logs',
     koaPagination(),
@@ -15,18 +18,19 @@ export default function logRoutes<T extends AuthedRouter>(router: T) {
       query: object({
         userId: string().optional(),
         applicationId: string().optional(),
-        logType: string().optional(),
+        logKey: string().optional(),
       }),
     }),
     async (ctx, next) => {
       const { limit, offset } = ctx.pagination;
       const {
-        query: { userId, applicationId, logType },
+        query: { userId, applicationId, logKey },
       } = ctx.guard;
 
+      // TODO: @Gao refactor like user search
       const [{ count }, logs] = await Promise.all([
-        countLogs({ logType, applicationId, userId }),
-        findLogs(limit, offset, { logType, userId, applicationId }),
+        countLogs({ logKey, applicationId, userId }),
+        findLogs(limit, offset, { logKey, userId, applicationId }),
       ]);
 
       // Return totalCount to pagination middleware

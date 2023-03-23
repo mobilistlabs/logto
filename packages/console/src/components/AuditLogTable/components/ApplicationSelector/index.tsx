@@ -1,5 +1,5 @@
 import type { Application } from '@logto/schemas';
-import { adminConsoleApplicationId } from '@logto/schemas/lib/seeds';
+import { adminConsoleApplicationId } from '@logto/schemas';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 
@@ -10,9 +10,9 @@ type Props = {
   onChange: (value?: string) => void;
 };
 
-const ApplicationSelector = ({ value, onChange }: Props) => {
+function ApplicationSelector({ value, onChange }: Props) {
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
-  const { data } = useSWR<Application[]>('/api/applications');
+  const { data } = useSWR<Application[]>('api/applications');
   const options =
     data?.map(({ id, name }) => ({
       value: id,
@@ -28,6 +28,6 @@ const ApplicationSelector = ({ value, onChange }: Props) => {
       onChange={onChange}
     />
   );
-};
+}
 
 export default ApplicationSelector;

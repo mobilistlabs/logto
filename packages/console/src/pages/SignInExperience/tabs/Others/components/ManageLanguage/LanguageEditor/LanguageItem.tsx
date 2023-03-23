@@ -3,7 +3,7 @@ import { languages } from '@logto/language-kit';
 import classNames from 'classnames';
 import { useEffect, useRef } from 'react';
 
-import { onKeyDownHandler } from '@/utilities/a11y';
+import { onKeyDownHandler } from '@/utils/a11y';
 
 import * as style from './LanguageItem.module.scss';
 
@@ -13,7 +13,7 @@ type Props = {
   onClick: () => void;
 };
 
-const LanguageItem = ({ languageTag, isSelected, onClick }: Props) => {
+function LanguageItem({ languageTag, isSelected, onClick }: Props) {
   const itemRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -43,6 +43,6 @@ const LanguageItem = ({ languageTag, isSelected, onClick }: Props) => {
       <div className={style.languageTag}>{languageTag}</div>
     </div>
   );
-};
+}
 
 export default LanguageItem;

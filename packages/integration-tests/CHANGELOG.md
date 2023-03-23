@@ -1,5 +1,63 @@
 # Change Log
 
+## 1.0.3
+
+## 1.0.2
+
+## 1.0.1
+
+## 1.0.0
+
+### Major Changes
+
+- 1c9160112: Packages are now ESM.
+
+### Minor Changes
+
+- f41fd3f05: Replace `passcode` naming convention in the interaction APIs and main flow ui with `verificationCode`.
+- 343b1090f: Allow admin tenant admin to create tenants without limitation
+- f41fd3f05: Officially cleanup all deprecated `/session` APIs in core and all the related integration tests.
+- f41fd3f05: Replace the `sms` naming convention using `phone` cross logto codebase. Including Sign-in Experience types, API paths, API payload and internal variable names.
+- 402866994: **💥 Breaking change 💥**
+
+  Use case-insensitive strategy for searching emails
+
+### Patch Changes
+
+- 38970fb88: Fix a Sign-in experience bug that may block some users to sign in.
+
+## 1.0.0-rc.3
+
+## 1.0.0-rc.2
+
+## 1.0.0-rc.1
+
+## 1.0.0-rc.0
+
+### Minor Changes
+
+- f41fd3f0: Replace `passcode` naming convention in the interaction APIs and main flow ui with `verificationCode`.
+- f41fd3f0: Officially cleanup all deprecated `/session` APIs in core and all the related integration tests.
+- f41fd3f0: Replace the `sms` naming convention using `phone` cross logto codebase. Including Sign-in Experience types, API paths, API payload and internal variable names.
+
+## 1.0.0-beta.19
+
+## 1.0.0-beta.18
+
+### Major Changes
+
+- 1c916011: Packages are now ESM.
+
+## 1.0.0-beta.17
+
+## 1.0.0-beta.16
+
+### Patch Changes
+
+- 38970fb8: Fix a Sign-in experience bug that may block some users to sign in.
+
+## 1.0.0-beta.15
+
 ## 1.0.0-beta.14
 
 ## 1.0.0-beta.13

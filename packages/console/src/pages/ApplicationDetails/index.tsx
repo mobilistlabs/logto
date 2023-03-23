@@ -1,4 +1,4 @@
-import type { Application, SnakeCaseOidcConfig } from '@logto/schemas';
+import type { Application, ApplicationResponse, SnakeCaseOidcConfig } from '@logto/schemas';
 import { ApplicationType } from '@logto/schemas';
 import { useEffect, useState } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
@@ -7,7 +7,6 @@ import { Trans, useTranslation } from 'react-i18next';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 
-import Back from '@/assets/images/back.svg';
 import Delete from '@/assets/images/delete.svg';
 import More from '@/assets/images/more.svg';
 import ActionMenu, { ActionMenuItem } from '@/components/ActionMenu';
@@ -17,18 +16,18 @@ import Card from '@/components/Card';
 import CopyToClipboard from '@/components/CopyToClipboard';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import DetailsForm from '@/components/DetailsForm';
-import DetailsSkeleton from '@/components/DetailsSkeleton';
+import DetailsPage from '@/components/DetailsPage';
 import Drawer from '@/components/Drawer';
-import LinkButton from '@/components/LinkButton';
 import TabNav, { TabNavItem } from '@/components/TabNav';
 import UnsavedChangesAlertModal from '@/components/UnsavedChangesAlertModal';
 import type { RequestError } from '@/hooks/use-api';
 import useApi from '@/hooks/use-api';
 import useDocumentationUrl from '@/hooks/use-documentation-url';
-import * as detailsStyles from '@/scss/details.module.scss';
 import { applicationTypeI18nKey } from '@/types/applications';
+import { withAppInsights } from '@/utils/app-insights';
 
 import Guide from '../Applications/components/Guide';
+import GuideModal from '../Applications/components/Guide/GuideModal';
 import AdvancedSettings from './components/AdvancedSettings';
 import Settings from './components/Settings';
 import * as styles from './index.module.scss';
@@ -39,26 +38,29 @@ const mapToUriFormatArrays = (value?: string[]) =>
 const mapToUriOriginFormatArrays = (value?: string[]) =>
   value?.filter(Boolean).map((uri) => decodeURIComponent(new URL(uri).origin));
 
-const ApplicationDetails = () => {
+function ApplicationDetails() {
   const { id } = useParams();
   const { pathname } = useLocation();
+  const isGuideView = !!id && pathname === `/applications/${id}/guide`;
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
-  const { data, error, mutate } = useSWR<Application, RequestError>(
-    id && `/api/applications/${id}`
+  const { data, error, mutate } = useSWR<ApplicationResponse, RequestError>(
+    id && `api/applications/${id}`
   );
-  const { data: oidcConfig, error: fetchOidcConfigError } = useSWR<
-    SnakeCaseOidcConfig,
-    RequestError
-  >('/oidc/.well-known/openid-configuration');
+  const {
+    data: oidcConfig,
+    error: fetchOidcConfigError,
+    mutate: mutateOidcConfig,
+  } = useSWR<SnakeCaseOidcConfig, RequestError>('oidc/.well-known/openid-configuration');
   const isLoading = (!data && !error) || (!oidcConfig && !fetchOidcConfigError);
+  const requestError = error ?? fetchOidcConfigError;
   const [isReadmeOpen, setIsReadmeOpen] = useState(false);
   const [isDeleteFormOpen, setIsDeleteFormOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleted, setIsDeleted] = useState(false);
   const api = useApi();
   const navigate = useNavigate();
-  const formMethods = useForm<Application>();
-  const documentationUrl = useDocumentationUrl();
+  const formMethods = useForm<Application & { isAdmin: boolean }>();
+  const { getDocumentationUrl } = useDocumentationUrl();
 
   const {
     handleSubmit,
@@ -79,8 +81,8 @@ const ApplicationDetails = () => {
       return;
     }
 
-    const updatedApplication = await api
-      .patch(`/api/applications/${data.id}`, {
+    await api
+      .patch(`api/applications/${data.id}`, {
         json: {
           ...formData,
           oidcClientMetadata: {
@@ -99,7 +101,7 @@ const ApplicationDetails = () => {
         },
       })
       .json<Application>();
-    void mutate(updatedApplication);
+    void mutate();
     toast.success(t('general.saved'));
   });
 
@@ -109,7 +111,7 @@ const ApplicationDetails = () => {
     }
 
     try {
-      await api.delete(`/api/applications/${data.id}`);
+      await api.delete(`api/applications/${data.id}`);
       setIsDeleted(true);
       setIsDeleting(false);
       setIsDeleteFormOpen(false);
@@ -125,14 +127,16 @@ const ApplicationDetails = () => {
   };
 
   return (
-    <div className={detailsStyles.container}>
-      <LinkButton
-        to="/applications"
-        icon={<Back />}
-        title="application_details.back_to_applications"
-        className={styles.backLink}
-      />
-      {isLoading && <DetailsSkeleton />}
+    <DetailsPage
+      backLink="/applications"
+      backLinkTitle="application_details.back_to_applications"
+      isLoading={isLoading}
+      error={requestError}
+      onRetry={() => {
+        void mutate();
+        void mutateOidcConfig();
+      }}
+    >
       {data && oidcConfig && (
         <>
           <Card className={styles.header}>
@@ -143,7 +147,7 @@ const ApplicationDetails = () => {
                 <div className={styles.type}>{t(`${applicationTypeI18nKey[data.type]}.title`)}</div>
                 <div className={styles.verticalBar} />
                 <div className={styles.text}>App ID</div>
-                <CopyToClipboard value={data.id} />
+                <CopyToClipboard size="small" value={data.id} />
               </div>
             </div>
             <div className={styles.operations}>
@@ -154,7 +158,7 @@ const ApplicationDetails = () => {
                 onClick={() => {
                   if (data.type === ApplicationType.MachineToMachine) {
                     window.open(
-                      `${documentationUrl}/docs/recipes/integrate-logto/machine-to-machine/`,
+                      getDocumentationUrl('/docs/recipes/integrate-logto/machine-to-machine'),
                       '_blank'
                     );
 
@@ -200,9 +204,7 @@ const ApplicationDetails = () => {
             </div>
           </Card>
           <TabNav>
-            <TabNavItem href={`/applications/${data.id}/settings`}>
-              {t('general.settings_nav')}
-            </TabNavItem>
+            <TabNavItem href={`/applications/${data.id}`}>{t('general.settings_nav')}</TabNavItem>
           </TabNav>
           <FormProvider {...formMethods}>
             <DetailsForm
@@ -218,8 +220,16 @@ const ApplicationDetails = () => {
         </>
       )}
       <UnsavedChangesAlertModal hasUnsavedChanges={!isDeleted && isDirty} />
-    </div>
+      {isGuideView && (
+        <GuideModal
+          app={data}
+          onClose={(id) => {
+            navigate(`/applications/${id}`);
+          }}
+        />
+      )}
+    </DetailsPage>
   );
-};
+}
 
-export default ApplicationDetails;
+export default withAppInsights(ApplicationDetails);

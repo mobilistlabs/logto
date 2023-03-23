@@ -1,70 +1,34 @@
-import type { Provider } from 'oidc-provider';
+import { InteractionEvent } from '@logto/schemas';
+import type { Context } from 'koa';
 
-import type { InteractionContext, Identifier } from '../types/index.js';
-import {
-  isPasscodeIdentifier,
-  isPasswordIdentifier,
-  isProfileIdentifier,
-} from '../utils/index.ts.js';
-import { verifyIdentifierByPasscode } from '../utils/passcode-validation.js';
-import { verifySocialIdentity } from '../utils/social-verification.js';
-import {
-  verifyUserByIdentityAndPassword,
-  verifyUserByVerifiedPasscodeIdentity,
-  verifyUserBySocialIdentity,
-} from '../utils/verify-user.js';
+import type TenantContext from '#src/tenants/TenantContext.js';
 
-// eslint-disable-next-line complexity
-export default async function identifierVerification(
-  ctx: InteractionContext,
-  provider: Provider
-): Promise<Identifier[]> {
-  const { identifier, event, profile } = ctx.interactionPayload;
+import type {
+  RegisterInteractionResult,
+  SignInInteractionResult,
+  ForgotPasswordInteractionResult,
+  AccountVerifiedInteractionResult,
+} from '../types/index.js';
+import { storeInteractionResult } from '../utils/interaction.js';
+import verifyUserAccount from './user-identity-verification.js';
 
-  if (!identifier || !event) {
-    return [];
+type InteractionResult =
+  | RegisterInteractionResult
+  | SignInInteractionResult
+  | ForgotPasswordInteractionResult;
+
+export default async function verifyIdentifier(
+  ctx: Context,
+  tenant: TenantContext,
+  interactionRecord: InteractionResult
+): Promise<RegisterInteractionResult | AccountVerifiedInteractionResult> {
+  if (interactionRecord.event === InteractionEvent.Register) {
+    return interactionRecord;
   }
 
-  if (isPasswordIdentifier(identifier)) {
-    const accountId = await verifyUserByIdentityAndPassword(identifier);
+  // Verify the user account and assign the verified result to the interaction record
+  const accountVerifiedInteractionResult = await verifyUserAccount(tenant, interactionRecord);
+  await storeInteractionResult(accountVerifiedInteractionResult, ctx, tenant.provider);
 
-    return [{ key: 'accountId', value: accountId }];
-  }
-
-  if (isPasscodeIdentifier(identifier)) {
-    const { jti } = await provider.interactionDetails(ctx.req, ctx.res);
-
-    await verifyIdentifierByPasscode({ ...identifier, event }, jti, ctx.log);
-
-    const verifiedPasscodeIdentifier: Identifier =
-      'email' in identifier
-        ? { key: 'verifiedEmail', value: identifier.email }
-        : { key: 'verifiedPhone', value: identifier.phone };
-
-    // Return the verified identity directly if it is new profile identities
-    if (isProfileIdentifier(identifier, profile)) {
-      return [verifiedPasscodeIdentifier];
-    }
-
-    // Find userAccount and return
-    const accountId = await verifyUserByVerifiedPasscodeIdentity(identifier);
-
-    return [{ key: 'accountId', value: accountId }, verifiedPasscodeIdentifier];
-  }
-
-  // Social Identifier
-  const socialUserInfo = await verifySocialIdentity(identifier, ctx.log);
-
-  const { connectorId } = identifier;
-
-  if (isProfileIdentifier(identifier, profile)) {
-    return [{ key: 'social', connectorId, value: socialUserInfo }];
-  }
-
-  const accountId = await verifyUserBySocialIdentity(connectorId, socialUserInfo);
-
-  return [
-    { key: 'accountId', value: accountId },
-    { key: 'social', connectorId, value: socialUserInfo },
-  ];
+  return accountVerifiedInteractionResult;
 }

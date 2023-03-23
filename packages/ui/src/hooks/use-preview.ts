@@ -2,21 +2,16 @@ import { ConnectorPlatform } from '@logto/schemas';
 import { conditionalString } from '@silverhand/essentials';
 import { useEffect, useState } from 'react';
 
-import * as styles from '@/containers/AppContent/index.module.scss';
+import * as styles from '@/Layout/AppLayout/index.module.scss';
 import type { Context } from '@/hooks/use-page-context';
 import initI18n from '@/i18n/init';
 import { changeLanguage } from '@/i18n/utils';
-import type { SignInExperienceSettings, PreviewConfig } from '@/types';
-import { parseQueryParameters } from '@/utils';
-import { signUpIdentifierMap } from '@/utils/sign-in-experience';
+import type { SignInExperienceResponse, PreviewConfig } from '@/types';
 import { filterPreviewSocialConnectors } from '@/utils/social-connectors';
 
 const usePreview = (context: Context): [boolean, PreviewConfig?] => {
   const [previewConfig, setPreviewConfig] = useState<PreviewConfig>();
-  const { setTheme, setExperienceSettings, setPlatform } = context;
-
-  const { preview } = parseQueryParameters(window.location.search);
-  const isPreview = preview === 'true';
+  const { isPreview, setExperienceSettings, setPlatform, setTheme } = context;
 
   useEffect(() => {
     if (!isPreview) {
@@ -24,18 +19,21 @@ const usePreview = (context: Context): [boolean, PreviewConfig?] => {
     }
 
     // Init i18n
-    void initI18n();
+    const i18nInit = initI18n();
 
     // Block pointer event
     document.body.classList.add(conditionalString(styles.preview));
 
-    const previewMessageHandler = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) {
-        return;
-      }
+    const previewMessageHandler = async (event: MessageEvent) => {
+      // TODO: @simeng: we can check allowed origins via `/.well-known/endpoints`
+      // if (event.origin !== window.location.origin) {
+      //   return;
+      // }
 
       if (event.data.sender === 'ac_preview') {
         // #event.data should be guarded at the provider's side
+        await i18nInit;
+
         // eslint-disable-next-line no-restricted-syntax
         setPreviewConfig(event.data.config as PreviewConfig);
       }
@@ -54,25 +52,14 @@ const usePreview = (context: Context): [boolean, PreviewConfig?] => {
     }
 
     const {
-      signInExperience: { signUp, socialConnectors, color, ...rest },
-      language,
+      signInExperience: { socialConnectors, ...rest },
       mode,
       platform,
       isNative,
     } = previewConfig;
 
-    const { identifier, ...signUpSettings } = signUp;
-
-    const experienceSettings: SignInExperienceSettings = {
+    const experienceSettings: SignInExperienceResponse = {
       ...rest,
-      color: {
-        ...color,
-        isDarkModeEnabled: false, // Disable theme mode auto detection on preview
-      },
-      signUp: {
-        methods: signUpIdentifierMap[identifier],
-        ...signUpSettings,
-      },
       socialConnectors: filterPreviewSocialConnectors(
         isNative ? ConnectorPlatform.Native : ConnectorPlatform.Web,
         socialConnectors
@@ -84,11 +71,19 @@ const usePreview = (context: Context): [boolean, PreviewConfig?] => {
 
       setPlatform(platform);
 
-      await changeLanguage(language);
-
       setExperienceSettings(experienceSettings);
     })();
   }, [isPreview, previewConfig, setExperienceSettings, setPlatform, setTheme]);
+
+  useEffect(() => {
+    if (!isPreview || !previewConfig?.language) {
+      return;
+    }
+
+    (async () => {
+      await changeLanguage(previewConfig.language);
+    })();
+  }, [previewConfig?.language, isPreview]);
 
   return [isPreview, previewConfig];
 };

@@ -1,53 +1,72 @@
 import { SignInMode } from '@logto/schemas';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Route, Routes, BrowserRouter, Navigate } from 'react-router-dom';
 
-import AppContent from './containers/AppContent';
-import LoadingLayerProvider from './containers/LoadingLayerProvider';
+import AppLayout from './Layout/AppLayout';
+import AppBoundary from './Providers/AppBoundary';
+import LoadingLayerProvider from './Providers/LoadingLayerProvider';
 import usePageContext from './hooks/use-page-context';
 import usePreview from './hooks/use-preview';
 import initI18n from './i18n/init';
 import Callback from './pages/Callback';
 import Consent from './pages/Consent';
 import Continue from './pages/Continue';
-import ContinueWithEmailOrPhone from './pages/Continue/EmailOrPhone';
 import ErrorPage from './pages/ErrorPage';
 import ForgotPassword from './pages/ForgotPassword';
-import Passcode from './pages/Passcode';
-import PasswordRegisterWithUsername from './pages/PasswordRegisterWithUsername';
 import Register from './pages/Register';
+import RegisterPassword from './pages/RegisterPassword';
 import ResetPassword from './pages/ResetPassword';
-import SecondaryRegister from './pages/SecondaryRegister';
-import SecondarySignIn from './pages/SecondarySignIn';
 import SignIn from './pages/SignIn';
 import SignInPassword from './pages/SignInPassword';
 import SocialLanding from './pages/SocialLanding';
-import SocialRegister from './pages/SocialRegister';
+import SocialLinkAccount from './pages/SocialLinkAccount';
 import SocialSignIn from './pages/SocialSignInCallback';
-import { getSignInExperienceSettings } from './utils/sign-in-experience';
+import Springboard from './pages/Springboard';
+import VerificationCode from './pages/VerificationCode';
+import { handleSearchParametersData } from './utils/search-parameters';
+import { getSignInExperienceSettings, setFavIcon } from './utils/sign-in-experience';
 
 import './scss/normalized.scss';
+
+handleSearchParametersData();
 
 const App = () => {
   const { context, Provider } = usePageContext();
   const { experienceSettings, setLoading, setExperienceSettings } = context;
-  const [isPreview] = usePreview(context);
+  const customCssRef = useRef(document.createElement('style'));
+  const [isPreview, previewConfig] = usePreview(context);
+
+  useEffect(() => {
+    document.head.append(customCssRef.current);
+  }, []);
 
   useEffect(() => {
     if (isPreview) {
+      // eslint-disable-next-line @silverhand/fp/no-mutation
+      customCssRef.current.textContent = previewConfig?.signInExperience.customCss ?? null;
+
       return;
     }
 
     (async () => {
       const settings = await getSignInExperienceSettings();
 
+      const {
+        customCss,
+        branding: { favicon },
+      } = settings;
+
+      // eslint-disable-next-line @silverhand/fp/no-mutation
+      customCssRef.current.textContent = customCss;
+      setFavIcon(favicon);
+
       // Note: i18n must be initialized ahead of page render
-      await initI18n(settings.languageInfo);
+      await initI18n();
 
       // Init the page settings and render
       setExperienceSettings(settings);
     })();
-  }, [isPreview, setExperienceSettings, setLoading]);
+  }, [isPreview, previewConfig, setExperienceSettings, setLoading]);
 
   if (!experienceSettings) {
     return null;
@@ -57,60 +76,66 @@ const App = () => {
   const isSignInOnly = experienceSettings.signInMode === SignInMode.SignIn;
 
   return (
-    <Provider value={context}>
-      <AppContent>
-        <BrowserRouter>
+    <BrowserRouter>
+      <Provider value={context}>
+        <AppBoundary>
           <Routes>
-            <Route path="/" element={<Navigate replace to="/sign-in" />} />
-            <Route path="/sign-in/consent" element={<Consent />} />
-            <Route
-              path="/unknown-session"
-              element={<ErrorPage message="error.invalid_session" />}
-            />
-
-            <Route element={<LoadingLayerProvider />}>
-              {/* Sign-in */}
+            <Route path="sign-in/consent" element={<Consent />} />
+            <Route element={<AppLayout />}>
               <Route
-                path="/sign-in"
-                element={isRegisterOnly ? <Navigate replace to="/register" /> : <SignIn />}
+                path="unknown-session"
+                element={<ErrorPage message="error.invalid_session" />}
               />
-              <Route path="/sign-in/social/:connector" element={<SocialSignIn />} />
-              <Route path="/sign-in/:method" element={<SecondarySignIn />} />
-              <Route path="/sign-in/:method/password" element={<SignInPassword />} />
+              <Route path="springboard" element={<Springboard />} />
 
-              {/* Register */}
-              <Route
-                path="/register"
-                element={isSignInOnly ? <Navigate replace to="/sign-in" /> : <Register />}
-              />
-              <Route
-                path="/register/username/password"
-                element={<PasswordRegisterWithUsername />}
-              />
-              <Route path="/register/:method" element={<SecondaryRegister />} />
+              <Route element={<LoadingLayerProvider />}>
+                {/* Sign-in */}
+                <Route path="sign-in">
+                  <Route
+                    index
+                    element={isRegisterOnly ? <Navigate replace to="/register" /> : <SignIn />}
+                  />
+                  <Route path="password" element={<SignInPassword />} />
+                  <Route path="social/:connectorId" element={<SocialSignIn />} />
+                </Route>
 
-              {/* Forgot password */}
-              <Route path="/forgot-password/reset" element={<ResetPassword />} />
-              <Route path="/forgot-password/:method" element={<ForgotPassword />} />
+                {/* Register */}
+                <Route path="register">
+                  <Route
+                    index
+                    element={isSignInOnly ? <Navigate replace to="/sign-in" /> : <Register />}
+                  />
+                  <Route path="password" element={<RegisterPassword />} />
+                </Route>
 
-              {/* Continue set up missing profile */}
-              <Route path="/continue/email-or-sms/:method" element={<ContinueWithEmailOrPhone />} />
-              <Route path="/continue/:method" element={<Continue />} />
+                {/* Forgot password */}
+                <Route path="forgot-password">
+                  <Route index element={<ForgotPassword />} />
+                  <Route path="reset" element={<ResetPassword />} />
+                </Route>
 
-              {/* Social sign-in pages */}
-              <Route path="/callback/:connector" element={<Callback />} />
-              <Route path="/social/register/:connector" element={<SocialRegister />} />
-              <Route path="/social/landing/:connector" element={<SocialLanding />} />
+                {/* Passwordless verification code */}
+                <Route path=":flow/verification-code" element={<VerificationCode />} />
 
-              {/* Always keep route path with param as the last one */}
-              <Route path="/:type/:method/passcode-validation" element={<Passcode />} />
+                {/* Continue set up missing profile */}
+                <Route path="continue">
+                  <Route path=":method" element={<Continue />} />
+                </Route>
+
+                {/* Social sign-in pages */}
+                <Route path="social">
+                  <Route path="link/:connectorId" element={<SocialLinkAccount />} />
+                  <Route path="landing/:connectorId" element={<SocialLanding />} />
+                </Route>
+                <Route path="callback/:connectorId" element={<Callback />} />
+              </Route>
+
+              <Route path="*" element={<ErrorPage />} />
             </Route>
-
-            <Route path="*" element={<ErrorPage />} />
           </Routes>
-        </BrowserRouter>
-      </AppContent>
-    </Provider>
+        </AppBoundary>
+      </Provider>
+    </BrowserRouter>
   );
 };
 

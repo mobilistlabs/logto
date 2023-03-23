@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import Card from '../Card';
+import TextLink from '../TextLink';
 import * as styles from './index.module.scss';
 
 type Props = {
@@ -12,7 +13,7 @@ type Props = {
   children: ReactNode;
 };
 
-const FormCard = ({ title, description, learnMoreLink, children }: Props) => {
+function FormCard({ title, description, learnMoreLink, children }: Props) {
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
 
   return (
@@ -23,9 +24,12 @@ const FormCard = ({ title, description, learnMoreLink, children }: Props) => {
           <div className={styles.description}>
             {t(description)}
             {learnMoreLink && (
-              <a href={learnMoreLink} target="_blank" rel="noopener">
-                {t('general.learn_more')}
-              </a>
+              <>
+                {' '}
+                <TextLink href={learnMoreLink} target="_blank" rel="noopener">
+                  {t('general.learn_more')}
+                </TextLink>
+              </>
             )}
           </div>
         )}
@@ -33,6 +37,6 @@ const FormCard = ({ title, description, learnMoreLink, children }: Props) => {
       <div className={styles.form}>{children}</div>
     </Card>
   );
-};
+}
 
 export default FormCard;

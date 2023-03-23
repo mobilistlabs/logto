@@ -2,7 +2,7 @@ import { act, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 
 import renderWithPageContext from '@/__mocks__/RenderWithPageContext';
-import { resetPassword } from '@/apis/forgot-password';
+import { setUserPassword } from '@/apis/interaction';
 
 import ResetPassword from '.';
 
@@ -13,8 +13,8 @@ jest.mock('react-router-dom', () => ({
   useNavigate: () => mockedNavigate,
 }));
 
-jest.mock('@/apis/forgot-password', () => ({
-  resetPassword: jest.fn(async () => ({ redirectTo: '/' })),
+jest.mock('@/apis/interaction', () => ({
+  setUserPassword: jest.fn(async () => ({ redirectTo: '/' })),
 }));
 
 describe('ForgotPassword', () => {
@@ -27,31 +27,31 @@ describe('ForgotPassword', () => {
       </MemoryRouter>
     );
 
-    expect(container.querySelector('input[name="new-password"]')).not.toBeNull();
-    expect(container.querySelector('input[name="confirm-new-password"]')).not.toBeNull();
+    expect(container.querySelector('input[name="newPassword"]')).not.toBeNull();
+    expect(container.querySelector('input[name="confirmPassword"]')).not.toBeNull();
     expect(queryByText('action.save_password')).not.toBeNull();
   });
 
   test('should submit properly', async () => {
     const { getByText, container } = renderWithPageContext(<ResetPassword />);
     const submitButton = getByText('action.save_password');
-    const passwordInput = container.querySelector('input[name="new-password"]');
-    const confirmPasswordInput = container.querySelector('input[name="confirm-new-password"]');
+    const passwordInput = container.querySelector('input[name="newPassword"]');
+    const confirmPasswordInput = container.querySelector('input[name="confirmPassword"]');
 
     act(() => {
       if (passwordInput) {
-        fireEvent.change(passwordInput, { target: { value: '123456' } });
+        fireEvent.change(passwordInput, { target: { value: '1234!@#$' } });
       }
 
       if (confirmPasswordInput) {
-        fireEvent.change(confirmPasswordInput, { target: { value: '123456' } });
+        fireEvent.change(confirmPasswordInput, { target: { value: '1234!@#$' } });
       }
 
       fireEvent.click(submitButton);
     });
 
     await waitFor(() => {
-      expect(resetPassword).toBeCalledWith('123456');
+      expect(setUserPassword).toBeCalledWith('1234!@#$');
     });
   });
 });

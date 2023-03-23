@@ -7,10 +7,10 @@ const sign_in_exp = {
     others: '其它',
   },
   welcome: {
-    title: '这是你首次定义登录体验。跟随引导，完成登录体验的必要设置项。',
+    title: '自定义登录体验',
+    description: '通过首次登录设置快速入门。本指南将带领你完成所有必要的设置。',
     get_started: '开始',
     apply_remind: '请注意，登录体验将会应用到当前帐户下的所有应用。',
-    got_it: '知道了',
   },
   color: {
     title: '颜色',
@@ -25,21 +25,28 @@ const sign_in_exp = {
   branding: {
     title: '品牌定制区',
     ui_style: '样式',
-    styles: {
-      logo_slogan: 'Logo 和标语',
-      logo: '仅有 Logo',
-    },
+    favicon: '浏览器地址栏图标',
     logo_image_url: 'Logo 图片 URL',
     logo_image_url_placeholder: 'https://your.cdn.domain/logo.png',
     dark_logo_image_url: 'Logo 图片 URL (深色)',
     dark_logo_image_url_placeholder: 'https://your.cdn.domain/logo-dark.png',
-    slogan: '标语',
-    slogan_placeholder: '释放你的创意',
+    logo_image: 'Logo 图片',
+    dark_logo_image: 'Logo 图片(深色)',
+    logo_image_error: '应用 Logo：{{error}}',
+    favicon_error: 'Favicon：{{error}}',
+  },
+  custom_css: {
+    title: '自定义 CSS',
+    css_code_editor_title: '自定义 CSS 个性化你的用户界面',
+    css_code_editor_description1: '查看自定义 CSS 的例子。',
+    css_code_editor_description2: '<a>{{link}}</a>',
+    css_code_editor_description_link_content: '了解更多',
+    css_code_editor_content_placeholder:
+      '输入 CSS 代码，修改颜色、字体、组件样式、布局，定制你的登录、注册、忘记密码等页面。充分发挥创造力，让你的用户界面脱颖而出。',
   },
   sign_up_and_sign_in: {
-    identifiers: '注册标识',
     identifiers_email: '邮件地址',
-    identifiers_sms: '手机号码',
+    identifiers_phone: '手机号码',
     identifiers_username: '用户名',
     identifiers_email_or_sms: '邮件地址或手机号码',
     identifiers_none: '无',
@@ -89,12 +96,11 @@ const sign_in_exp = {
   },
   others: {
     terms_of_use: {
-      title: '使用条款',
-      enable: '开启使用条款',
-      description: '添加使用产品的法律协议。',
-      terms_of_use: '使用条款',
+      title: '条款',
+      terms_of_use: '使用条款 URL',
       terms_of_use_placeholder: 'https://your.terms.of.use/',
-      terms_of_use_tip: '使用条款 URL',
+      privacy_policy: '隐私政策 URL',
+      privacy_policy_placeholder: 'https://your.privacy.policy/',
     },
     languages: {
       title: '语言',
@@ -124,7 +130,6 @@ const sign_in_exp = {
       default_language_deletion_title: '你无法删除默认语言',
       default_language_deletion_description:
         '你已设置{{language}}为你的默认语言，你无法删除默认语言。',
-      got_it: '知道了',
     },
     advanced_options: {
       title: '高级选项',
@@ -134,11 +139,14 @@ const sign_in_exp = {
     },
   },
   setup_warning: {
-    no_connector: '',
-    no_connector_sms: '你尚未设置 SMS 短信连接器。在完成该配置前，你将无法登录。',
-    no_connector_email: '你尚未设置电子邮件连接器。在完成该配置前，你将无法登录。',
-    no_connector_social: '你尚未设置社交连接器。在完成该配置前，你将无法登录。',
+    no_connector_sms:
+      '尚未设置 SMS 短信连接器。在完成该配置前，用户将无法通过此登录方式登录。<a>{{link}}</a>连接器。',
+    no_connector_email:
+      '尚未设置电子邮件连接器。在完成该配置前，用户将无法通过此登录方式登录。<a>{{link}}</a>连接器。',
+    no_connector_social:
+      '尚未设置社交连接器。在完成该配置前，用户将无法通过此登录方式登录。<a>{{link}}</a>连接器。',
     no_added_social_connector: '你已经成功设置了一些社交连接器。点按「+」添加一些到你的登录体验。',
+    setup_link: '立即设置',
   },
   save_alert: {
     description:
@@ -151,8 +159,8 @@ const sign_in_exp = {
   },
   preview: {
     title: '登录预览',
-    dark: '深色',
-    light: '浅色',
+    live_preview: '实时预览',
+    live_preview_tip: '保存以预览更改',
     native: '移动原生',
     desktop_web: '桌面网页',
     mobile_web: '移动网页',

@@ -8,11 +8,11 @@ import Logo from '@/assets/images/logo.svg';
 import AppError from '@/components/AppError';
 import Button from '@/components/Button';
 import SessionExpired from '@/components/SessionExpired';
-import { useTheme } from '@/hooks/use-theme';
+import useTheme from '@/hooks/use-theme';
 
 import * as styles from './index.module.scss';
 
-const Welcome = () => {
+function Welcome() {
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
   const navigate = useNavigate();
   const { isAuthenticated, error, signIn } = useLogto();
@@ -28,7 +28,7 @@ const Welcome = () => {
 
   if (error) {
     if (error instanceof LogtoClientError) {
-      return <SessionExpired />;
+      return <SessionExpired error={error} callbackHref={href} />;
     }
 
     return <AppError errorMessage={error.message} callStack={error.stack} />;
@@ -58,6 +58,6 @@ const Welcome = () => {
       </main>
     </div>
   );
-};
+}
 
 export default Welcome;

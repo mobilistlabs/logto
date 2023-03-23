@@ -1,27 +1,34 @@
 const connector_details = {
   back_to_connectors: 'Voltar para Conectores',
   check_readme: 'Verifique o README',
-  settings: 'Settings', // UNTRANSLATED
+  settings: 'General settings', // UNTRANSLATED
   settings_description:
     'Connectors play a critical role in Logto. With their help, Logto enables end-users to use passwordless registration or sign-in and the capabilities of signing in with social accounts.', // UNTRANSLATED
+  parameter_configuration: 'Parameter configuration', // UNTRANSLATED
+  test_connection: 'Test connection', // UNTRANSLATED
   save_error_empty_config: 'Por favor, insira a configuração',
   send: 'Enviar',
   send_error_invalid_format: 'Entrada inválida',
   edit_config_label: 'Introduza o JSON aqui',
   test_email_sender: 'Teste o conector de email',
   test_sms_sender: 'Teste o conector de SMS',
-  test_email_placeholder: 'Insira um endereço de email para o teste',
-  test_sms_placeholder: 'Insira um número de telefone para o teste',
-  test_message_sent: 'Mensagem de teste enviada!',
-  test_sender_description: 'Receberá uma mensagem se o JSON estiver configurado corretamente',
+  test_email_placeholder: 'john.doe@example.com',
+  test_sms_placeholder: '+351 912 345 678',
+  test_message_sent: 'Mensagem de teste enviada',
+  test_sender_description:
+    'O Logto utiliza o modelo "Generic" para testes. Receberás uma mensagem se o teu conector estiver configurado corretamente.',
   options_change_email: 'Alterar conector de email',
   options_change_sms: 'Alterar conector de SMS',
   connector_deleted: 'O conector foi removido com sucesso',
   type_email: 'Conector de Email',
   type_sms: 'Conector de SMS',
   type_social: 'Conector Social',
-  in_use_deletion_description:
-    'This connector is in use in your sign in experience. By deleting, <name/> sign in experience will be deleted in sign in experience settings.', // UNTRANSLATED
+  in_used_social_deletion_description:
+    'This connector is in-use in your sign in experience. By deleting, <name/> sign in experience will be deleted in sign in experience settings. You will need to reconfigure it if you decide to add it back.', // UNTRANSLATED
+  in_used_passwordless_deletion_description:
+    'This {{name}} is in-use in your sign-in experience. By deleting, your sign-in experience will not work properly until you resolve the conflict. You will need to reconfigure it if you decide to add it back.', // UNTRANSLATED
+  deletion_description:
+    'You are removing this connector. It cannot be undone, and you will need to reconfigure it if you decide to add it back.', // UNTRANSLATED
 };
 
 export default connector_details;

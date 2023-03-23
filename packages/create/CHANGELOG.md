@@ -1,5 +1,111 @@
 # Change Log
 
+## 1.0.3
+
+### Patch Changes
+
+- @logto/cli@1.0.3
+
+## 1.0.2
+
+### Patch Changes
+
+- @logto/cli@1.0.2
+
+## 1.0.1
+
+### Patch Changes
+
+- @logto/cli@1.0.1
+
+## 1.0.0
+
+### Major Changes
+
+- 1c9160112: Packages are now ESM.
+
+### Patch Changes
+
+- 38970fb88: Fix a Sign-in experience bug that may block some users to sign in.
+- 7fb689b73: Fix version lifecycle script
+- 1c9160112: - Remove official connectors inquiry
+  - Fix default download url with current package version
+- Updated dependencies [f41fd3f05]
+- Updated dependencies [343b1090f]
+- Updated dependencies [38970fb88]
+- Updated dependencies [343b1090f]
+- Updated dependencies [343b1090f]
+- Updated dependencies [1c9160112]
+- Updated dependencies [f41fd3f05]
+- Updated dependencies [7fb689b73]
+- Updated dependencies [1c9160112]
+- Updated dependencies [f41fd3f05]
+- Updated dependencies [3ff2e90cd]
+  - @logto/cli@1.0.0
+
+## 1.0.0-rc.3
+
+### Patch Changes
+
+- @logto/cli@1.0.0-rc.3
+
+## 1.0.0-rc.2
+
+### Patch Changes
+
+- @logto/cli@1.0.0-rc.2
+
+## 1.0.0-rc.1
+
+### Patch Changes
+
+- @logto/cli@1.0.0-rc.1
+
+## 1.0.0-rc.0
+
+### Patch Changes
+
+- Updated dependencies [f41fd3f0]
+- Updated dependencies [f41fd3f0]
+- Updated dependencies [f41fd3f0]
+  - @logto/cli@1.0.0-rc.0
+
+## 1.0.0-beta.19
+
+### Patch Changes
+
+- df9e98dc: Fix version lifecycle script
+- Updated dependencies [df9e98dc]
+  - @logto/cli@1.0.0-beta.19
+
+## 1.0.0-beta.18
+
+### Major Changes
+
+- 1c916011: Packages are now ESM.
+
+### Patch Changes
+
+- 1c916011: - Remove official connectors inquiry
+  - Fix default download url with current package version
+- Updated dependencies [1c916011]
+- Updated dependencies [1c916011]
+  - @logto/cli@1.0.0-beta.18
+
+## 1.0.0-beta.16
+
+### Patch Changes
+
+- 38970fb8: Fix a Sign-in experience bug that may block some users to sign in.
+- Updated dependencies [38970fb8]
+  - @logto/cli@1.0.0-beta.16
+
+## 1.0.0-beta.15
+
+### Patch Changes
+
+- @logto/cli@1.0.0-beta.15
+
 ## 1.0.0-beta.14
 
 ### Patch Changes

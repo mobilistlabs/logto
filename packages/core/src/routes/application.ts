@@ -1,24 +1,40 @@
-import { Applications } from '@logto/schemas';
-import { buildApplicationSecret, buildIdGenerator } from '@logto/shared';
-import { object, string } from 'zod';
+import { generateStandardId, buildIdGenerator } from '@logto/core-kit';
+import type { Role } from '@logto/schemas';
+import {
+  demoAppApplicationId,
+  buildDemoAppDataForTenant,
+  Applications,
+  InternalRole,
+} from '@logto/schemas';
+import { boolean, object, string, z } from 'zod';
 
+import RequestError from '#src/errors/RequestError/index.js';
 import koaGuard from '#src/middleware/koa-guard.js';
 import koaPagination from '#src/middleware/koa-pagination.js';
 import { buildOidcClientMetadata } from '#src/oidc/utils.js';
-import {
-  deleteApplicationById,
-  findApplicationById,
-  findAllApplications,
-  insertApplication,
-  updateApplicationById,
-  findTotalNumberOfApplications,
-} from '#src/queries/application.js';
+import assertThat from '#src/utils/assert-that.js';
 
-import type { AuthedRouter } from './types.js';
+import type { AuthedRouter, RouterInitArgs } from './types.js';
 
 const applicationId = buildIdGenerator(21);
+const includesInternalAdminRole = (roles: Readonly<Array<{ role: Role }>>) =>
+  roles.some(({ role: { name } }) => name === InternalRole.Admin);
 
-export default function applicationRoutes<T extends AuthedRouter>(router: T) {
+export default function applicationRoutes<T extends AuthedRouter>(
+  ...[router, { queries, id: tenantId }]: RouterInitArgs<T>
+) {
+  const {
+    deleteApplicationById,
+    findApplicationById,
+    findAllApplications,
+    insertApplication,
+    updateApplicationById,
+    findTotalNumberOfApplications,
+  } = queries.applications;
+  const { findApplicationsRolesByApplicationId, insertApplicationsRoles, deleteApplicationRole } =
+    queries.applicationsRoles;
+  const { findRoleByRoleName } = queries.roles;
+
   router.get('/applications', koaPagination(), async (ctx, next) => {
     const { limit, offset } = ctx.pagination;
 
@@ -47,7 +63,7 @@ export default function applicationRoutes<T extends AuthedRouter>(router: T) {
 
       ctx.body = await insertApplication({
         id: applicationId(),
-        secret: buildApplicationSecret(),
+        secret: generateStandardId(),
         oidcClientMetadata: buildOidcClientMetadata(oidcClientMetadata),
         ...rest,
       });
@@ -60,13 +76,27 @@ export default function applicationRoutes<T extends AuthedRouter>(router: T) {
     '/applications/:id',
     koaGuard({
       params: object({ id: string().min(1) }),
+      response: Applications.guard.merge(z.object({ isAdmin: z.boolean() })),
     }),
     async (ctx, next) => {
       const {
         params: { id },
       } = ctx.guard;
 
-      ctx.body = await findApplicationById(id);
+      // Somethings console needs to display demo app info. Build a fixed one for it.
+      if (id === demoAppApplicationId) {
+        ctx.body = { ...buildDemoAppDataForTenant(tenantId), isAdmin: false };
+
+        return next();
+      }
+
+      const application = await findApplicationById(id);
+      const applicationsRoles = await findApplicationsRolesByApplicationId(id);
+
+      ctx.body = {
+        ...application,
+        isAdmin: includesInternalAdminRole(applicationsRoles),
+      };
 
       return next();
     }
@@ -76,7 +106,14 @@ export default function applicationRoutes<T extends AuthedRouter>(router: T) {
     '/applications/:id',
     koaGuard({
       params: object({ id: string().min(1) }),
-      body: Applications.createGuard.omit({ id: true, createdAt: true }).deepPartial(),
+      body: Applications.createGuard
+        .omit({ id: true, createdAt: true })
+        .deepPartial()
+        .merge(
+          object({
+            isAdmin: boolean().optional(),
+          })
+        ),
     }),
     async (ctx, next) => {
       const {
@@ -84,9 +121,33 @@ export default function applicationRoutes<T extends AuthedRouter>(router: T) {
         body,
       } = ctx.guard;
 
-      ctx.body = await updateApplicationById(id, {
-        ...body,
-      });
+      const { isAdmin, ...rest } = body;
+
+      // User can enable the admin access of Machine-to-Machine apps by switching on a toggle on Admin Console.
+      // Since those apps sit in the user tenant, we provide an internal role to apply the necessary scopes.
+      // This role is NOT intended for user assignment.
+      if (isAdmin !== undefined) {
+        const [applicationsRoles, internalAdminRole] = await Promise.all([
+          findApplicationsRolesByApplicationId(id),
+          findRoleByRoleName(InternalRole.Admin),
+        ]);
+        const usedToBeAdmin = includesInternalAdminRole(applicationsRoles);
+
+        assertThat(
+          internalAdminRole,
+          new RequestError('entity.not_exists', { name: InternalRole.Admin })
+        );
+
+        if (isAdmin && !usedToBeAdmin) {
+          await insertApplicationsRoles([
+            { id: generateStandardId(), applicationId: id, roleId: internalAdminRole.id },
+          ]);
+        } else if (!isAdmin && usedToBeAdmin) {
+          await deleteApplicationRole(id, internalAdminRole.id);
+        }
+      }
+
+      ctx.body = await updateApplicationById(id, rest);
 
       return next();
     }
@@ -98,7 +159,6 @@ export default function applicationRoutes<T extends AuthedRouter>(router: T) {
     async (ctx, next) => {
       const { id } = ctx.guard.params;
       // Note: will need delete cascade when application is joint with other tables
-      await findApplicationById(id);
       await deleteApplicationById(id);
       ctx.status = 204;
 

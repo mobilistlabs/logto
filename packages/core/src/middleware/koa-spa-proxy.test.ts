@@ -1,18 +1,25 @@
-import envSet, { MountedApps } from '#src/env-set/index.js';
+import { pickDefault, createMockUtils } from '@logto/shared/esm';
+import Sinon from 'sinon';
+
+import { EnvSet, UserApps } from '#src/env-set/index.js';
 import { createContextWithRouteParameters } from '#src/utils/test-utils.js';
 
-import koaSpaProxy from './koa-spa-proxy.js';
+const { jest } = import.meta;
+
+const { mockEsmDefault } = createMockUtils(jest);
 
 const mockProxyMiddleware = jest.fn();
 const mockStaticMiddleware = jest.fn();
+const mountedApps = Object.values(UserApps);
 
-jest.mock('fs/promises', () => ({
-  ...jest.requireActual('fs/promises'),
+mockEsmDefault('fs/promises', () => ({
   readdir: jest.fn().mockResolvedValue(['sign-in']),
 }));
 
-jest.mock('koa-proxies', () => jest.fn(() => mockProxyMiddleware));
-jest.mock('#src/middleware/koa-serve-static.js', () => jest.fn(() => mockStaticMiddleware));
+mockEsmDefault('koa-proxies', () => jest.fn(() => mockProxyMiddleware));
+mockEsmDefault('#src/middleware/koa-serve-static.js', () => jest.fn(() => mockStaticMiddleware));
+
+const koaSpaProxy = await pickDefault(import('./koa-spa-proxy.js'));
 
 describe('koaSpaProxy middleware', () => {
   const envBackup = process.env;
@@ -28,14 +35,14 @@ describe('koaSpaProxy middleware', () => {
 
   const next = jest.fn();
 
-  for (const app of Object.values(MountedApps)) {
+  for (const app of Object.values(mountedApps)) {
     // eslint-disable-next-line @typescript-eslint/no-loop-func
     it(`${app} path should not call dev proxy`, async () => {
       const ctx = createContextWithRouteParameters({
         url: `/${app}/foo`,
       });
 
-      await koaSpaProxy()(ctx, next);
+      await koaSpaProxy(mountedApps)(ctx, next);
 
       expect(mockProxyMiddleware).not.toBeCalled();
     });
@@ -43,13 +50,13 @@ describe('koaSpaProxy middleware', () => {
 
   it('dev env should call dev proxy for SPA paths', async () => {
     const ctx = createContextWithRouteParameters();
-    await koaSpaProxy()(ctx, next);
+    await koaSpaProxy(mountedApps)(ctx, next);
     expect(mockProxyMiddleware).toBeCalled();
   });
 
   it('production env should overwrite the request path to root if no target ui file are detected', async () => {
-    const spy = jest.spyOn(envSet, 'values', 'get').mockReturnValue({
-      ...envSet.values,
+    const stub = Sinon.stub(EnvSet, 'values').value({
+      ...EnvSet.values,
       isProduction: true,
     });
 
@@ -57,16 +64,16 @@ describe('koaSpaProxy middleware', () => {
       url: '/foo',
     });
 
-    await koaSpaProxy()(ctx, next);
+    await koaSpaProxy(mountedApps)(ctx, next);
 
     expect(mockStaticMiddleware).toBeCalled();
     expect(ctx.request.path).toEqual('/');
-    spy.mockRestore();
+    stub.restore();
   });
 
   it('production env should call the static middleware if path hit the ui file directory', async () => {
-    const spy = jest.spyOn(envSet, 'values', 'get').mockReturnValue({
-      ...envSet.values,
+    const stub = Sinon.stub(EnvSet, 'values').value({
+      ...EnvSet.values,
       isProduction: true,
     });
 
@@ -74,8 +81,8 @@ describe('koaSpaProxy middleware', () => {
       url: '/sign-in',
     });
 
-    await koaSpaProxy()(ctx, next);
+    await koaSpaProxy(mountedApps)(ctx, next);
     expect(mockStaticMiddleware).toBeCalled();
-    spy.mockRestore();
+    stub.restore();
   });
 });

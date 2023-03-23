@@ -40,42 +40,27 @@
     }
 
     .connector {
-      font: var(--font-body-medium);
+      font: var(--font-body-2);
       display: flex;
-
-      .logo {
-        width: 40px;
-        height: 40px;
-        display: flex;
-        align-items: center;
-        margin-right: _.unit(3);
-
-        img {
-          width: 40px;
-          height: 40px;
-        }
-      }
 
       .content {
         flex: 1;
+        margin-left: _.unit(3);
 
         .name {
-          font: var(--font-subhead-2);
+          font: var(--font-label-2);
           @include _.multi-line-ellipsis(1);
-
-          &.nameWithRightPadding {
-            padding-right: _.unit(12); /* For check mark and added label */
-          }
+          padding-right: _.unit(3);
         }
 
         .connectorId {
           margin-top: _.unit(1);
-          font: var(--font-body-small);
+          font: var(--font-body-3);
           color: var(--color-text-secondary);
         }
 
         .description {
-          font: var(--font-body-small);
+          font: var(--font-body-3);
           color: var(--color-text-secondary);
           margin-top: _.unit(1);
           @include _.multi-line-ellipsis(4);

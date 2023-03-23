@@ -29,7 +29,7 @@
   .identifier {
     width: 130px;
     display: flex;
-    font: var(--font-label-large);
+    font: var(--font-label-2);
     align-items: center;
   }
 
@@ -46,7 +46,7 @@
     }
 
     .swapButton {
-      margin-right: _.unit(4);
+      margin: 0 _.unit(4);
     }
 
     &.verifyCodePrimary {
@@ -73,6 +73,6 @@
 }
 
 .errorMessage {
-  font: var(--font-body-medium);
+  font: var(--font-body-2);
   color: var(--color-error);
 }

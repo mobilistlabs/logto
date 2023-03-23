@@ -1,9 +1,8 @@
 import { ConnectorType } from '@logto/schemas';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
 
-import DragDropProvider from '@/components/Transfer/DragDropProvider';
-import DraggableItem from '@/components/Transfer/DraggableItem';
+import { DragDropProvider, DraggableItem } from '@/components/DragDrop';
+import TextLink from '@/components/TextLink';
 import useConnectorGroups from '@/hooks/use-connector-groups';
 import type { ConnectorGroup } from '@/types/connector';
 
@@ -17,7 +16,7 @@ type Props = {
   onChange: (value: string[]) => void;
 };
 
-const SocialConnectorEditBox = ({ value, onChange }: Props) => {
+function SocialConnectorEditBox({ value, onChange }: Props) {
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
   const { data: connectorData, error } = useConnectorGroups();
 
@@ -54,8 +53,7 @@ const SocialConnectorEditBox = ({ value, onChange }: Props) => {
     .filter((item): item is ConnectorGroup => Boolean(item));
 
   const connectorOptions = connectorData.filter(
-    ({ target, type, enabled }) =>
-      !value.includes(target) && type === ConnectorType.Social && enabled
+    ({ target, type }) => !value.includes(target) && type === ConnectorType.Social
   );
 
   return (
@@ -87,14 +85,14 @@ const SocialConnectorEditBox = ({ value, onChange }: Props) => {
       />
       <ConnectorSetupWarning requiredConnectors={[ConnectorType.Social]} />
       <div className={styles.setUpHint}>
-        {t('sign_in_exp.sign_up_and_sign_in.social_sign_in.set_up_hint.not_in_list')}{' '}
-        <Link to="/connectors/social" target="_blank">
+        {t('sign_in_exp.sign_up_and_sign_in.social_sign_in.set_up_hint.not_in_list')}
+        <TextLink to="/connectors/social" className={styles.setup}>
           {t('sign_in_exp.sign_up_and_sign_in.social_sign_in.set_up_hint.set_up_more')}
-        </Link>{' '}
+        </TextLink>
         {t('sign_in_exp.sign_up_and_sign_in.social_sign_in.set_up_hint.go_to')}
       </div>
     </div>
   );
-};
+}
 
 export default SocialConnectorEditBox;

@@ -7,19 +7,13 @@ export {
   type ConfigurableConnectorMetadata,
 } from '@logto/connector-kit';
 
-/**
- * Commonly Used
- */
+/* === Commonly Used === */
 
-// Cannot declare `z.object({}).catchall(z.unknown().optional())` to guard `{ [key: string]?: unknown }` (invalid type),
-// so do it another way to guard `{ [x: string]: unknown; } | {}`.
-export const arbitraryObjectGuard = z.union([z.object({}).catchall(z.unknown()), z.object({})]);
+export const arbitraryObjectGuard = z.record(z.unknown());
 
 export type ArbitraryObject = z.infer<typeof arbitraryObjectGuard>;
 
-/**
- * OIDC Model Instances
- */
+/* === OIDC Model Instances === */
 
 export const oidcModelInstancePayloadGuard = z
   .object({
@@ -67,22 +61,20 @@ export enum CustomClientMetadataKey {
   CorsAllowedOrigins = 'corsAllowedOrigins',
   IdTokenTtl = 'idTokenTtl',
   RefreshTokenTtl = 'refreshTokenTtl',
+  TenantId = 'tenantId',
 }
 
 export const customClientMetadataGuard = z.object({
   [CustomClientMetadataKey.CorsAllowedOrigins]: z.string().url().array().optional(),
   [CustomClientMetadataKey.IdTokenTtl]: z.number().optional(),
   [CustomClientMetadataKey.RefreshTokenTtl]: z.number().optional(),
+  [CustomClientMetadataKey.TenantId]: z.string().optional(),
 });
 
 export type CustomClientMetadata = z.infer<typeof customClientMetadataGuard>;
 
-/**
- * Users
- */
+/* === Users === */
 export const roleNamesGuard = z.string().array();
-
-export type RoleNames = z.infer<typeof roleNamesGuard>;
 
 const identityGuard = z.object({
   userId: z.string(),
@@ -93,9 +85,7 @@ export const identitiesGuard = z.record(identityGuard);
 export type Identity = z.infer<typeof identityGuard>;
 export type Identities = z.infer<typeof identitiesGuard>;
 
-/**
- * SignIn Experiences
- */
+/* === SignIn Experiences === */
 
 export const colorGuard = z.object({
   primaryColor: z.string().regex(hexColorRegEx),
@@ -105,26 +95,13 @@ export const colorGuard = z.object({
 
 export type Color = z.infer<typeof colorGuard>;
 
-export enum BrandingStyle {
-  Logo = 'Logo',
-  Logo_Slogan = 'Logo_Slogan',
-}
-
 export const brandingGuard = z.object({
-  style: z.nativeEnum(BrandingStyle),
-  logoUrl: z.string().url(),
+  logoUrl: z.string().url().optional(),
   darkLogoUrl: z.string().url().optional(),
-  slogan: z.string().optional(),
+  favicon: z.string().url().optional(),
 });
 
 export type Branding = z.infer<typeof brandingGuard>;
-
-export const termsOfUseGuard = z.object({
-  enabled: z.boolean(),
-  contentUrl: z.string().url().optional().or(z.literal('')),
-});
-
-export type TermsOfUse = z.infer<typeof termsOfUseGuard>;
 
 export const languageInfoGuard = z.object({
   autoDetect: z.boolean(),
@@ -133,27 +110,19 @@ export const languageInfoGuard = z.object({
 
 export type LanguageInfo = z.infer<typeof languageInfoGuard>;
 
-export enum SignUpIdentifier {
-  Email = 'email',
-  Sms = 'sms',
+export enum SignInIdentifier {
   Username = 'username',
-  EmailOrSms = 'emailOrSms',
-  None = 'none',
+  Email = 'email',
+  Phone = 'phone',
 }
 
 export const signUpGuard = z.object({
-  identifier: z.nativeEnum(SignUpIdentifier),
+  identifiers: z.nativeEnum(SignInIdentifier).array(),
   password: z.boolean(),
   verify: z.boolean(),
 });
 
 export type SignUp = z.infer<typeof signUpGuard>;
-
-export enum SignInIdentifier {
-  Email = 'email',
-  Sms = 'sms',
-  Username = 'username',
-}
 
 export const signInGuard = z.object({
   methods: z
@@ -172,31 +141,11 @@ export const connectorTargetsGuard = z.string().array();
 
 export type ConnectorTargets = z.infer<typeof connectorTargetsGuard>;
 
-/**
- * Settings
- */
+export const customContentGuard = z.record(z.string());
 
-export enum AppearanceMode {
-  SyncWithSystem = 'system',
-  LightMode = 'light',
-  DarkMode = 'dark',
-}
+export type CustomContent = z.infer<typeof customContentGuard>;
 
-export const adminConsoleConfigGuard = z.object({
-  // Get started challenges
-  demoChecked: z.boolean(),
-  applicationCreated: z.boolean(),
-  signInExperienceCustomized: z.boolean(),
-  passwordlessConfigured: z.boolean(),
-  socialSignInConfigured: z.boolean(),
-  furtherReadingsChecked: z.boolean(),
-});
-
-export type AdminConsoleConfig = z.infer<typeof adminConsoleConfigGuard>;
-
-/**
- * Phrases
- */
+/* === Phrases === */
 
 export type Translation = {
   [key: string]: string | Translation;
@@ -205,3 +154,62 @@ export type Translation = {
 export const translationGuard: z.ZodType<Translation> = z.lazy(() =>
   z.record(z.string().or(translationGuard))
 );
+
+/* === Logs === */
+
+export enum LogResult {
+  Success = 'Success',
+  Error = 'Error',
+}
+
+export const logContextPayloadGuard = z
+  .object({
+    key: z.string(),
+    result: z.nativeEnum(LogResult),
+    error: z.record(z.string(), z.unknown()).or(z.string()).optional(),
+    ip: z.string().optional(),
+    userAgent: z.string().optional(),
+    userId: z.string().optional(),
+    applicationId: z.string().optional(),
+    sessionId: z.string().optional(),
+  })
+  .catchall(z.unknown());
+
+/**
+ * The basic log context type. It's more about a type hint instead of forcing the log shape.
+ *
+ * Note when setting up a log function, the type of log key in function arguments should be `LogKey`.
+ * Here we use `string` to make it compatible with the Zod guard.
+ **/
+export type LogContextPayload = z.infer<typeof logContextPayloadGuard>;
+
+/* === Hooks === */
+
+export enum HookEvent {
+  PostRegister = 'PostRegister',
+  PostSignIn = 'PostSignIn',
+  PostResetPassword = 'PostResetPassword',
+}
+
+export const hookEventGuard: z.ZodType<HookEvent> = z.nativeEnum(HookEvent);
+
+export type HookConfig = {
+  /** We don't need `type` since v1 only has web hook */
+  // type: 'web';
+  /** Method fixed to `POST` */
+  url: string;
+  /** Additional headers that attach to the request */
+  headers?: Record<string, string>;
+  /**
+   * Retry times when hook response status >= 500.
+   *
+   * Must be less than or equal to `3`. Use `0` to disable retry.
+   **/
+  retries: number;
+};
+
+export const hookConfigGuard: z.ZodType<HookConfig> = z.object({
+  url: z.string(),
+  headers: z.record(z.string()).optional(),
+  retries: z.number().gte(0).lte(3),
+});

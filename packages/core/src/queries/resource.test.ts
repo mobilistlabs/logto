@@ -3,12 +3,22 @@ import { convertToIdentifiers, convertToPrimitiveOrSql } from '@logto/shared';
 import { createMockPool, createMockQueryResult, sql } from 'slonik';
 
 import { mockResource } from '#src/__mocks__/index.js';
-import envSet from '#src/env-set/index.js';
 import { DeletionError } from '#src/errors/SlonikError/index.js';
 import type { QueryType } from '#src/utils/test-utils.js';
 import { expectSqlAssert } from '#src/utils/test-utils.js';
 
-import {
+const { jest } = import.meta;
+
+const mockQuery: jest.MockedFunction<QueryType> = jest.fn();
+
+const pool = createMockPool({
+  query: async (sql, values) => {
+    return mockQuery(sql, values);
+  },
+});
+
+const { createResourceQueries } = await import('./resource.js');
+const {
   findTotalNumberOfResources,
   findAllResources,
   findResourceById,
@@ -16,20 +26,14 @@ import {
   insertResource,
   updateResourceById,
   deleteResourceById,
-} from './resource.js';
-
-const mockQuery: jest.MockedFunction<QueryType> = jest.fn();
-
-jest.spyOn(envSet, 'pool', 'get').mockReturnValue(
-  createMockPool({
-    query: async (sql, values) => {
-      return mockQuery(sql, values);
-    },
-  })
-);
+} = createResourceQueries(pool);
 
 describe('resource query', () => {
   const { table, fields } = convertToIdentifiers(Resources);
+
+  afterEach(() => {
+    mockQuery.mockClear();
+  });
 
   it('findTotalNumberOfResources', async () => {
     const expectSql = sql`
@@ -107,10 +111,11 @@ describe('resource query', () => {
   });
 
   it('insertResource', async () => {
+    const insertFields = Object.values(fields).filter((field) => field.names[0] !== 'tenant_id');
     const expectSql = sql`
-      insert into ${table} (${sql.join(Object.values(fields), sql`, `)})
+      insert into ${table} (${sql.join(insertFields, sql`, `)})
       values (${sql.join(
-        Object.values(fields).map((_, index) => `$${index + 1}`),
+        insertFields.map((_, index) => `$${index + 1}`),
         sql`, `
       )})
       returning *
@@ -120,7 +125,9 @@ describe('resource query', () => {
       expectSqlAssert(sql, expectSql.sql);
 
       expect(values).toEqual(
-        Resources.fieldKeys.map((k) => convertToPrimitiveOrSql(k, mockResource[k]))
+        Resources.fieldKeys
+          .filter((key) => key !== 'tenantId')
+          .map((k) => convertToPrimitiveOrSql(k, mockResource[k]))
       );
 
       return createMockQueryResult([mockResource]);
