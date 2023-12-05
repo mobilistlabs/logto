@@ -19,9 +19,7 @@ RUN pnpm i
 RUN pnpm -r build
 
 ### Add official connectors ###
-ARG additional_connector_args
-ENV ADDITIONAL_CONNECTOR_ARGS=${additional_connector_args}
-RUN pnpm cli connector add --official $ADDITIONAL_CONNECTOR_ARGS -p .
+RUN pnpm cli connector add @logto/connector-google@1.1.0 --path /etc/logto
 
 ### Prune dependencies for production ###
 RUN rm -rf node_modules packages/**/node_modules
